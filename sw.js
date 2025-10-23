@@ -1,10 +1,10 @@
 const CACHE_NAME = 'music-player-v1';
 const urlsToCache = [
-    '/',
-    '/index.html',
-    '/styles.css',
-    '/app.js',
-    '/manifest.json'
+    './',
+    './index.html',
+    './styles.css',
+    './app.js',
+    './manifest.json'
 ];
 
 // Install service worker and cache assets
@@ -65,7 +65,7 @@ self.addEventListener('fetch', (event) => {
                     return response;
                 }).catch(() => {
                     // Return a custom offline page if available
-                    return caches.match('/index.html');
+                    return caches.match('./index.html');
                 });
             })
     );
