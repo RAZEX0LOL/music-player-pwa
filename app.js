@@ -702,7 +702,39 @@ class MusicPlayer {
     }
 }
 
+// Help Modal functionality
+function initHelpModal() {
+    const modal = document.getElementById('helpModal');
+    const helpBtn = document.getElementById('helpBtn');
+    const closeBtn = document.querySelector('.close');
+
+    // Open modal when help button is clicked
+    helpBtn.addEventListener('click', () => {
+        modal.classList.add('show');
+    });
+
+    // Close modal when X button is clicked
+    closeBtn.addEventListener('click', () => {
+        modal.classList.remove('show');
+    });
+
+    // Close modal when clicking outside of modal content
+    window.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            modal.classList.remove('show');
+        }
+    });
+
+    // Close modal when pressing ESC key
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && modal.classList.contains('show')) {
+            modal.classList.remove('show');
+        }
+    });
+}
+
 // Initialize the player when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     window.player = new MusicPlayer();
+    initHelpModal();
 });

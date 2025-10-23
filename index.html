@@ -24,6 +24,7 @@
                 <span id="statusIndicator" class="online">●</span>
                 <span id="statusText">Готов</span>
             </div>
+            <button id="helpBtn" class="help-btn" title="Инструкция / Help">❓</button>
         </header>
 
         <div class="add-songs-section">
@@ -84,6 +85,73 @@
     <!-- Video element supports both audio and video formats (including MP4) -->
     <!-- Hidden: video is invisible, only audio plays -->
     <video id="audioPlayer" preload="metadata" playsinline style="display: none;"></video>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>📖 Инструкция / User Guide</h2>
+
+            <div class="help-section">
+                <h3>🎵 Как добавить музыку / How to Add Music</h3>
+                <p><strong>Способ 1:</strong> Нажмите "📁 Добавить песни" → Выберите файлы</p>
+                <p><strong>Method 1:</strong> Click "📁 Add Songs" → Select files</p>
+                <p><strong>Способ 2:</strong> Перетащите MP3/MP4 файлы в окно</p>
+                <p><strong>Method 2:</strong> Drag & drop MP3/MP4 files into window</p>
+            </div>
+
+            <div class="help-section">
+                <h3>▶️ Управление / Controls</h3>
+                <p>⏮️ Предыдущая / Previous | ▶️ Играть / Play | ⏸️ Пауза / Pause | ⏭️ Следующая / Next</p>
+                <p>🔊 Громкость / Volume | Прогресс бар / Progress bar для перемотки / for seeking</p>
+            </div>
+
+            <div class="help-section">
+                <h3>💾 Хранилище / Storage</h3>
+                <p>📱 <strong>Телефон / Phone:</strong> до / up to 10 GB</p>
+                <p>💻 <strong>Компьютер / Desktop:</strong> до / up to 500 GB!</p>
+                <p>✅ Музыка хранится <strong>локально</strong> / Music stored <strong>locally</strong></p>
+                <p>✅ Работает <strong>офлайн</strong> / Works <strong>offline</strong></p>
+            </div>
+
+            <div class="help-section">
+                <h3>📶 Офлайн режим / Offline Mode</h3>
+                <p>1. Добавьте песни <strong>с интернетом</strong> (один раз)</p>
+                <p>1. Add songs <strong>with internet</strong> (once)</p>
+                <p>2. Слушайте <strong>без интернета</strong> когда угодно!</p>
+                <p>2. Listen <strong>without internet</strong> anytime!</p>
+            </div>
+
+            <div class="help-section">
+                <h3>🎼 Форматы / Formats</h3>
+                <p>✅ MP3, WAV, OGG, FLAC, M4A, AAC</p>
+                <p>✅ MP4, M4V (видео - только звук / video - audio only)</p>
+            </div>
+
+            <div class="help-section">
+                <h3>📱 Установить как приложение / Install as App</h3>
+                <p><strong>iPhone:</strong> Safari → Поделиться → На экран "Домой"</p>
+                <p><strong>iPhone:</strong> Safari → Share → Add to Home Screen</p>
+                <p><strong>Android:</strong> Chrome → Меню (⋮) → Установить приложение</p>
+                <p><strong>Android:</strong> Chrome → Menu (⋮) → Install app</p>
+                <p><strong>Desktop:</strong> Chrome/Edge → Значок установки (⊕)</p>
+                <p><strong>Desktop:</strong> Chrome/Edge → Install icon (⊕)</p>
+            </div>
+
+            <div class="help-section">
+                <h3>📚 Полная инструкция / Full Guide</h3>
+                <p>🇷🇺 <a href="https://github.com/RAZEX0LOL/music-player-pwa/blob/master/INSTRUKCIYA.md" target="_blank">Русская инструкция</a></p>
+                <p>🇬🇧 <a href="https://github.com/RAZEX0LOL/music-player-pwa/blob/master/USER-GUIDE.md" target="_blank">English User Guide</a></p>
+            </div>
+
+            <div class="help-section" style="text-align: center; padding-top: 10px;">
+                <p style="color: rgba(255,255,255,0.6); font-size: 0.9em;">
+                    🔒 100% приватно / 100% private<br>
+                    Нет слежки / No tracking | Нет рекламы / No ads
+                </p>
+            </div>
+        </div>
+    </div>
 
     <script src="./app.js"></script>
 </body>
