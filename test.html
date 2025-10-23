@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Music Player Test</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <h1>Music Player PWA - Diagnostic Test</h1>
+
+    <div id="status"></div>
+    <br>
+
+    <input type="file" id="testFile" accept="audio/*,video/mp4,.mp3,.mp4,.m4a">
+    <button onclick="testAddSong()">Test Add Song</button>
+    <br><br>
+
+    <button onclick="testPlaySong()">Test Play Song</button>
+    <br><br>
+
+    <video id="testPlayer" controls style="display: block; width: 300px;"></video>
+
+    <h3>Test Results:</h3>
+    <pre id="results"></pre>
+
+    <script>
+        let testDB = null;
+        let testSongId = null;
+
+        function log(message) {
+            const results = document.getElementById('results');
+            results.textContent += message + '\n';
+            console.log(message);
+        }
+
+        function setStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        // Test IndexedDB
+        async function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('TestMusicDB', 1);
+
+                request.onerror = () => {
+                    log('❌ IndexedDB Error: ' + request.error);
+                    reject(request.error);
+                };
+
+                request.onsuccess = () => {
+                    testDB = request.result;
+                    log('✅ IndexedDB opened successfully');
+                    resolve(testDB);
+                };
+
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains('songs')) {
+                        db.createObjectStore('songs', { keyPath: 'id', autoIncrement: true });
+                        log('✅ Object store created');
+                    }
+                };
+            });
+        }
+
+        // Test adding song
+        async function testAddSong() {
+            try {
+                setStatus('Testing add song...');
+                log('\n--- Testing Add Song ---');
+
+                const fileInput = document.getElementById('testFile');
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    log('❌ No file selected');
+                    return;
+                }
+
+                const file = fileInput.files[0];
+                log('File selected: ' + file.name);
+                log('File type: ' + file.type);
+                log('File size: ' + file.size + ' bytes');
+
+                if (!testDB) {
+                    await initDB();
+                }
+
+                // Convert to blob
+                log('Converting to ArrayBuffer...');
+                const arrayBuffer = await file.arrayBuffer();
+                log('✅ ArrayBuffer created: ' + arrayBuffer.byteLength + ' bytes');
+
+                const blob = new Blob([arrayBuffer], { type: file.type });
+                log('✅ Blob created: ' + blob.size + ' bytes');
+
+                // Store in IndexedDB
+                log('Storing in IndexedDB...');
+                const transaction = testDB.transaction(['songs'], 'readwrite');
+                const store = transaction.objectStore('songs');
+
+                const song = {
+                    name: file.name,
+                    blob: blob,
+                    type: file.type,
+                    size: file.size
+                };
+
+                const request = store.add(song);
+
+                request.onsuccess = () => {
+                    testSongId = request.result;
+                    log('✅ Song stored successfully! ID: ' + testSongId);
+                    setStatus('Song added successfully!');
+                };
+
+                request.onerror = () => {
+                    log('❌ Store error: ' + request.error);
+                    setStatus('Error: ' + request.error);
+                };
+
+            } catch (error) {
+                log('❌ Error: ' + error.message);
+                setStatus('Error: ' + error.message);
+            }
+        }
+
+        // Test playing song
+        async function testPlaySong() {
+            try {
+                setStatus('Testing playback...');
+                log('\n--- Testing Playback ---');
+
+                if (!testDB || !testSongId) {
+                    log('❌ No song to play. Add a song first.');
+                    return;
+                }
+
+                const transaction = testDB.transaction(['songs'], 'readonly');
+                const store = transaction.objectStore('songs');
+                const request = store.get(testSongId);
+
+                request.onsuccess = async () => {
+                    const songData = request.result;
+                    log('✅ Song retrieved from DB');
+                    log('Song name: ' + songData.name);
+                    log('Blob size: ' + songData.blob.size);
+                    log('Blob type: ' + songData.blob.type);
+
+                    const url = URL.createObjectURL(songData.blob);
+                    log('✅ Object URL created: ' + url.substring(0, 50) + '...');
+
+                    const player = document.getElementById('testPlayer');
+                    player.src = url;
+                    player.load();
+
+                    try {
+                        await player.play();
+                        log('✅ Playback started!');
+                        setStatus('Playing!');
+                    } catch (playError) {
+                        log('❌ Playback error: ' + playError.message);
+                        setStatus('Playback error: ' + playError.message);
+                    }
+                };
+
+                request.onerror = () => {
+                    log('❌ Retrieve error: ' + request.error);
+                };
+
+            } catch (error) {
+                log('❌ Error: ' + error.message);
+                setStatus('Error: ' + error.message);
+            }
+        }
+
+        // Initialize on load
+        window.onload = async () => {
+            log('Initializing test page...');
+            try {
+                await initDB();
+                setStatus('Ready to test');
+            } catch (error) {
+                setStatus('Initialization error: ' + error.message);
+            }
+        };
+    </script>
+</body>
+</html>
