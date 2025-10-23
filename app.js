@@ -31,8 +31,8 @@ class MusicDB {
     async addSong(file) {
         // Convert File to ArrayBuffer BEFORE creating transaction
         // (to avoid transaction timeout)
+        // Store ArrayBuffer instead of Blob/File for maximum compatibility
         const arrayBuffer = await file.arrayBuffer();
-        const blob = new Blob([arrayBuffer], { type: file.type });
 
         // NOW create transaction after async work is done
         const transaction = this.db.transaction(['songs'], 'readwrite');
@@ -40,7 +40,7 @@ class MusicDB {
 
         const song = {
             name: file.name,
-            blob: blob,  // Store as Blob instead of File
+            arrayBuffer: arrayBuffer,  // Store raw ArrayBuffer (most compatible)
             size: file.size,
             type: file.type,
             addedDate: new Date().toISOString()
@@ -338,8 +338,20 @@ class MusicPlayer {
 
         try {
             const songData = await this.db.getSong(song.id);
-            // Use blob (new storage format) or fallback to file (old format for compatibility)
-            const fileBlob = songData.blob || songData.file;
+
+            // Recreate Blob from stored data (supports multiple storage formats)
+            let fileBlob;
+            if (songData.arrayBuffer) {
+                // New format: ArrayBuffer (most compatible)
+                fileBlob = new Blob([songData.arrayBuffer], { type: songData.type });
+            } else if (songData.blob) {
+                // Old format: Blob
+                fileBlob = songData.blob;
+            } else if (songData.file) {
+                // Oldest format: File
+                fileBlob = songData.file;
+            }
+
             const url = URL.createObjectURL(fileBlob);
 
             this.audio.src = url;
