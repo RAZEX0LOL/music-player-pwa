@@ -132,7 +132,7 @@ class MusicPlayer {
         this.nextBtn.addEventListener('click', () => this.playNext());
         this.progressBar.addEventListener('input', (e) => this.seek(e.target.value));
         this.volumeBar.addEventListener('input', (e) => this.setVolume(e.target.value));
-        this.addSongsBtn.addEventListener('click', () => this.fileInput.click());
+        this.addSongsBtn.addEventListener('click', () => this.handleAddSongsClick());
         this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
         this.clearAllBtn.addEventListener('click', () => this.clearAllSongs());
 
@@ -171,6 +171,18 @@ class MusicPlayer {
     updateOnlineStatus(isOnline) {
         this.statusIndicator.className = isOnline ? 'online' : 'offline';
         this.statusText.textContent = isOnline ? 'Онлайн' : 'Офлайн - Работает без интернета!';
+    }
+
+    handleAddSongsClick() {
+        // iOS Safari blocks file picker in offline mode for PWAs
+        // Show helpful message and prevent the error
+        if (!navigator.onLine) {
+            alert('⚠️ Добавление новых песен недоступно офлайн\n\nПожалуйста:\n1. Подключитесь к интернету\n2. Добавьте песни\n3. Затем можно слушать офлайн!\n\nУже добавленные песни работают без интернета.');
+            return;
+        }
+
+        // Open file picker when online
+        this.fileInput.click();
     }
 
     async handleFileSelect(event) {
