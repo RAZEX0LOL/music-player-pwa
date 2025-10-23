@@ -1,176 +1,191 @@
-# Offline Music Player PWA
+# Офлайн Музыкальный Плеер PWA
 
-A Progressive Web App that lets you listen to your music completely offline, without any internet connection!
+Прогрессивное веб-приложение, которое позволяет слушать музыку полностью офлайн, без интернета!
 
-## Features
+## Возможности
 
-- **100% Offline** - Works without internet after initial setup
-- **Install as App** - Can be installed on your phone/desktop
-- **Beautiful UI** - Modern, animated interface with vinyl disc animation
-- **Full Controls** - Play, pause, next, previous, seek, volume
-- **Lock Screen Controls** - Control music from your phone's lock screen
-- **Playlist Management** - Add, delete, and manage your songs
-- **No Server Needed** - All music stored locally in your browser
+- **100% Офлайн** - Работает без интернета после первой настройки
+- **Установка как приложение** - Можно установить на телефон/компьютер
+- **Красивый интерфейс** - Современный, анимированный дизайн с винилом
+- **Полное управление** - Воспроизведение, пауза, следующая, предыдущая, перемотка, громкость
+- **Управление с экрана блокировки** - Управляйте музыкой с заблокированного экрана телефона
+- **Управление плейлистом** - Добавляйте, удаляйте и управляйте песнями
+- **Не требует сервера** - Вся музыка хранится локально в браузере
 
-## How to Use
+## Как использовать
 
-### 1. Setup (requires internet once)
+### 1. Настройка (требуется интернет один раз)
 
-You need a local web server to run the PWA. Here are three easy ways:
+Для запуска PWA нужен локальный веб-сервер. Есть три простых способа:
 
-**Option A: Using Python (if installed)**
+**Вариант А: Использование Python (если установлен)**
+
 ```bash
 cd music-player-pwa
 python3 -m http.server 8000
 ```
 
-**Option B: Using Node.js (if installed)**
+**Вариант Б: Использование Node.js (если установлен)**
+
 ```bash
 cd music-player-pwa
 npx serve
 ```
 
-**Option C: Using PHP (if installed)**
+**Вариант В: Использование PHP (если установлен)**
+
 ```bash
 cd music-player-pwa
 php -S localhost:8000
 ```
 
-### 2. Open in Browser
+### 2. Откройте в браузере
 
-Open your browser and go to:
+Откройте браузер и перейдите по адресу:
+
 ```
 http://localhost:8000
 ```
 
-### 3. Install as App (Optional but Recommended)
+### 3. Установите как приложение (Необязательно, но рекомендуется)
 
-**On Desktop (Chrome/Edge):**
-- Click the install icon in the address bar (looks like a computer with an arrow)
-- Or go to menu → "Install Offline Music Player"
+**На компьютере (Chrome/Edge):**
 
-**On Mobile (Chrome/Safari):**
-- Chrome: Tap menu → "Add to Home Screen"
-- Safari: Tap share button → "Add to Home Screen"
+- Нажмите на иконку установки в адресной строке (выглядит как компьютер со стрелкой)
+- Или зайдите в меню → "Установить Офлайн Музыкальный Плеер"
 
-### 4. Add Your Music
+**На телефоне (Chrome/Safari):**
 
-1. Click the "📁 Add Songs" button
-2. Select MP3, WAV, OGG, or other audio files from your device
-3. Your songs are now stored locally in the browser!
+- Chrome: Нажмите меню → "Добавить на главный экран"
+- Safari: Нажмите кнопку поделиться → "На экран Домой"
 
-### 5. Listen Offline
+### 4. Добавьте свою музыку
 
-- Turn off your internet/WiFi
-- Open the app (installed or in browser)
-- Your music is still there and plays perfectly!
-- All songs are stored in IndexedDB in your browser
+1. Нажмите кнопку "📁 Добавить песни"
+2. Выберите MP3, WAV, OGG или другие аудиофайлы с вашего устройства
+3. Ваши песни теперь сохранены локально в браузере!
 
-## Controls
+### 5. Слушайте офлайн
 
-- **Play/Pause** - Click the center button or spacebar
-- **Next/Previous** - Use arrow buttons
-- **Seek** - Drag the progress bar
-- **Volume** - Adjust the volume slider
-- **Select Song** - Click any song in the playlist
-- **Delete Song** - Click the trash icon next to a song
-- **Clear All** - Remove all songs at once
+- Отключите интернет/WiFi
+- Откройте приложение (установленное или в браузере)
+- Ваша музыка всё ещё там и отлично играет!
+- Все песни хранятся в IndexedDB в вашем браузере
 
-## Lock Screen Controls
+## Управление
 
-When playing on mobile, you can control the music from:
-- Lock screen
-- Notification panel
-- Bluetooth headphones
-- Car audio systems
+- **Воспроизведение/Пауза** - Нажмите центральную кнопку или пробел
+- **Следующая/Предыдущая** - Используйте кнопки со стрелками
+- **Перемотка** - Перетащите полосу прогресса
+- **Громкость** - Настройте ползунок громкости
+- **Выбор песни** - Нажмите на любую песню в плейлисте
+- **Удалить песню** - Нажмите на иконку корзины рядом с песней
+- **Очистить всё** - Удалить все песни разом
 
-## Technical Details
+## Управление с экрана блокировки
 
-### Storage
-- Songs are stored in **IndexedDB** (browser database)
-- App files cached by **Service Worker**
-- Typical storage: 50MB - 2GB depending on browser and device
-- No server upload - everything stays on your device
+При воспроизведении на телефоне вы можете управлять музыкой из:
 
-### Supported Audio Formats
+- Экрана блокировки
+- Панели уведомлений
+- Bluetooth наушников
+- Автомобильной аудиосистемы
+
+## Технические детали
+
+### Хранилище
+
+- Песни хранятся в **IndexedDB** (база данных браузера)
+- Файлы приложения кешируются **Service Worker**
+- Типичное хранилище: 50МБ - 2ГБ в зависимости от браузера и устройства
+- Нет загрузки на сервер - всё остаётся на вашем устройстве
+
+### Поддерживаемые аудиоформаты
+
 - MP3
 - WAV
 - OGG
 - M4A
-- FLAC (browser-dependent)
-- And more (depends on your browser)
+- FLAC (зависит от браузера)
+- И другие (зависит от вашего браузера)
 
-### Browser Support
-- Chrome/Edge (Desktop & Mobile) ✅
-- Firefox (Desktop & Mobile) ✅
-- Safari (Desktop & Mobile) ✅
+### Поддержка браузеров
+
+- Chrome/Edge (Компьютер и Телефон) ✅
+- Firefox (Компьютер и Телефон) ✅
+- Safari (Компьютер и Телефон) ✅
 - Opera ✅
 
-## Privacy
+## Конфиденциальность
 
-- **100% Private** - No data sent to any server
-- **No Tracking** - No analytics, no tracking
-- **Local Only** - All files stay on your device
-- **No Account** - No login, no registration
+- **100% Приватно** - Никакие данные не отправляются на сервер
+- **Без отслеживания** - Нет аналитики, нет слежения
+- **Только локально** - Все файлы остаются на вашем устройстве
+- **Без аккаунта** - Нет входа, нет регистрации
 
-## Tips
+## Советы
 
-1. **Storage Space**: Check your browser storage settings if you can't add more songs
-2. **Backup**: Export your music files regularly (browser data can be cleared)
-3. **Battery**: Lock screen playback may use more battery on mobile
-4. **Format**: MP3 files work best for compatibility
-5. **Organization**: Name your files clearly (shown as song title)
+1. **Место для хранения**: Проверьте настройки хранилища браузера, если не можете добавить больше песен
+2. **Резервное копирование**: Регулярно экспортируйте ваши музыкальные файлы (данные браузера могут быть очищены)
+3. **Батарея**: Воспроизведение с экрана блокировки может использовать больше батареи на телефоне
+4. **Формат**: MP3 файлы работают лучше всего для совместимости
+5. **Организация**: Называйте файлы понятно (отображается как название песни)
 
-## Troubleshooting
+## Решение проблем
 
-**Songs won't play?**
-- Check if the audio format is supported by your browser
-- Try re-adding the song
+**Песни не играют?**
 
-**App doesn't work offline?**
-- Make sure you opened it at least once while online
-- Check if Service Worker is registered (F12 → Application → Service Workers)
+- Проверьте, поддерживается ли аудиоформат вашим браузером
+- Попробуйте добавить песню заново
 
-**Storage full?**
-- Clear old songs you don't need
-- Check browser storage quota in settings
+**Приложение не работает офлайн?**
 
-**Can't install the app?**
-- Make sure you're using HTTPS (or localhost for testing)
-- Try a different browser
+- Убедитесь, что вы открывали его хотя бы один раз онлайн
+- Проверьте, зарегистрирован ли Service Worker (F12 → Application → Service Workers)
 
-## File Structure
+**Хранилище заполнено?**
+
+- Удалите старые песни, которые вам не нужны
+- Проверьте квоту хранилища браузера в настройках
+
+**Не могу установить приложение?**
+
+- Убедитесь, что используете HTTPS (или localhost для тестирования)
+- Попробуйте другой браузер
+
+## Структура файлов
 
 ```
 music-player-pwa/
-├── index.html          # Main HTML page
-├── styles.css          # Styling
-├── app.js             # Player logic & IndexedDB
-├── sw.js              # Service Worker (offline cache)
-├── manifest.json      # PWA manifest
-└── README.md          # This file
+├── index.html          # Главная HTML страница
+├── styles.css          # Стили
+├── app.js             # Логика плеера и IndexedDB
+├── sw.js              # Service Worker (офлайн кеш)
+├── manifest.json      # Манифест PWA
+└── README.md       # Этот файл
 ```
 
-## How It Works
+## Как это работает
 
-1. **Service Worker** caches the app files (HTML, CSS, JS)
-2. **IndexedDB** stores your audio files as binary blobs
-3. **Audio API** plays the files from local storage
-4. **Media Session API** provides lock screen controls
-5. Everything works offline after initial load!
+1. **Service Worker** кеширует файлы приложения (HTML, CSS, JS)
+2. **IndexedDB** хранит ваши аудиофайлы как бинарные блобы
+3. **Audio API** воспроизводит файлы из локального хранилища
+4. **Media Session API** предоставляет управление с экрана блокировки
+5. Всё работает офлайн после первой загрузки!
 
-## Development
+## Разработка
 
-Want to customize? The code is simple and well-commented:
-- `app.js` - Main player logic, IndexedDB operations
-- `styles.css` - All visual styling
-- `sw.js` - Offline caching strategy
-- `index.html` - Structure and layout
+Хотите кастомизировать? Код простой и хорошо прокомментирован:
 
-## License
+- `app.js` - Основная логика плеера, операции IndexedDB
+- `styles.css` - Все визуальные стили
+- `sw.js` - Стратегия офлайн кеширования
+- `index.html` - Структура и разметка
 
-Free to use, modify, and share! No restrictions.
+## Лицензия
+
+Свободно использовать, изменять и распространять! Без ограничений.
 
 ---
 
-Enjoy your music offline! 🎵
+Наслаждайтесь музыкой офлайн! 🎵
