@@ -32,9 +32,13 @@ class MusicDB {
         const transaction = this.db.transaction(['songs'], 'readwrite');
         const store = transaction.objectStore('songs');
 
+        // Convert File to ArrayBuffer for reliable IndexedDB storage
+        const arrayBuffer = await file.arrayBuffer();
+        const blob = new Blob([arrayBuffer], { type: file.type });
+
         const song = {
             name: file.name,
-            file: file,
+            blob: blob,  // Store as Blob instead of File
             size: file.size,
             type: file.type,
             addedDate: new Date().toISOString()
@@ -332,7 +336,9 @@ class MusicPlayer {
 
         try {
             const songData = await this.db.getSong(song.id);
-            const url = URL.createObjectURL(songData.file);
+            // Use blob (new storage format) or fallback to file (old format for compatibility)
+            const fileBlob = songData.blob || songData.file;
+            const url = URL.createObjectURL(fileBlob);
 
             this.audio.src = url;
             this.audio.load(); // Ensure video/audio element loads the source
