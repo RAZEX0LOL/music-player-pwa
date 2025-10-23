@@ -82,7 +82,8 @@
     </div>
 
     <!-- Video element supports both audio and video formats (including MP4) -->
-    <video id="audioPlayer" preload="metadata" style="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none;"></video>
+    <!-- Hidden: video is invisible, only audio plays -->
+    <video id="audioPlayer" preload="metadata" playsinline style="display: none;"></video>
 
     <script src="./app.js"></script>
 </body>
