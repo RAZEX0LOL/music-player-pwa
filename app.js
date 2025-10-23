@@ -209,7 +209,10 @@ class MusicPlayer {
             }, 2000);
         } catch (error) {
             console.error('Error adding songs:', error);
-            this.statusText.textContent = 'Ошибка добавления песен';
+            this.statusText.textContent = 'Ошибка добавления: ' + error.message;
+            setTimeout(() => {
+                this.updateOnlineStatus(navigator.onLine);
+            }, 3000);
         }
 
         event.target.value = '';
@@ -332,9 +335,17 @@ class MusicPlayer {
             const url = URL.createObjectURL(songData.file);
 
             this.audio.src = url;
-            await this.audio.play();
+            this.audio.load(); // Ensure video/audio element loads the source
 
-            this.isPlaying = true;
+            try {
+                await this.audio.play();
+                this.isPlaying = true;
+            } catch (playError) {
+                console.error('Playback error:', playError);
+                // Try to play again (sometimes first attempt fails on mobile)
+                this.isPlaying = false;
+            }
+
             this.updatePlayButton();
             this.updateNowPlaying(song.name);
             this.vinylDisc.classList.add('spinning');
@@ -343,7 +354,7 @@ class MusicPlayer {
             this.updateMediaSessionPositionState();
         } catch (error) {
             console.error('Error playing song:', error);
-            this.statusText.textContent = 'Ошибка воспроизведения';
+            this.statusText.textContent = 'Ошибка воспроизведения: ' + error.message;
         }
     }
 
