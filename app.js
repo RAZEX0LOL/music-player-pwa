@@ -142,6 +142,12 @@ class MusicPlayer {
 
         window.addEventListener('online', () => this.updateOnlineStatus(true));
         window.addEventListener('offline', () => this.updateOnlineStatus(false));
+
+        // Drag and drop support for offline file uploads
+        const dropZone = document.body;
+        dropZone.addEventListener('dragover', (e) => this.handleDragOver(e));
+        dropZone.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+        dropZone.addEventListener('drop', (e) => this.handleDrop(e));
     }
 
     async init() {
@@ -174,15 +180,15 @@ class MusicPlayer {
     }
 
     handleAddSongsClick() {
-        // iOS Safari blocks file picker in offline mode for PWAs
-        // Show helpful message and prevent the error
-        if (!navigator.onLine) {
-            alert('⚠️ Добавление новых песен недоступно офлайн\n\nПожалуйста:\n1. Подключитесь к интернету\n2. Добавьте песни\n3. Затем можно слушать офлайн!\n\nУже добавленные песни работают без интернета.');
-            return;
+        // Try to open file picker
+        // Note: iOS Safari may block this in offline PWA mode
+        // In that case, users can use drag-and-drop instead
+        try {
+            this.fileInput.click();
+        } catch (error) {
+            console.error('File picker error:', error);
+            alert('Используйте перетаскивание файлов (drag & drop) для добавления песен офлайн');
         }
-
-        // Open file picker when online
-        this.fileInput.click();
     }
 
     async handleFileSelect(event) {
@@ -334,6 +340,7 @@ class MusicPlayer {
             this.vinylDisc.classList.add('spinning');
             this.renderPlaylist();
             this.updateMediaSession(song.name);
+            this.updateMediaSessionPositionState();
         } catch (error) {
             console.error('Error playing song:', error);
             this.statusText.textContent = 'Ошибка воспроизведения';
@@ -396,6 +403,7 @@ class MusicPlayer {
     updateDuration() {
         if (this.audio.duration) {
             this.durationEl.textContent = this.formatTime(this.audio.duration);
+            this.updateMediaSessionPositionState();
         }
     }
 
@@ -441,10 +449,102 @@ class MusicPlayer {
                 album: 'Офлайн Музыкальный Плеер'
             });
 
+            // Basic playback controls
             navigator.mediaSession.setActionHandler('play', () => this.togglePlay());
             navigator.mediaSession.setActionHandler('pause', () => this.togglePlay());
             navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrevious());
             navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext());
+
+            // Seek controls for lock screen rewind/fast-forward
+            navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+                const skipTime = details.seekOffset || 10;
+                this.audio.currentTime = Math.max(0, this.audio.currentTime - skipTime);
+            });
+
+            navigator.mediaSession.setActionHandler('seekforward', (details) => {
+                const skipTime = details.seekOffset || 10;
+                this.audio.currentTime = Math.min(this.audio.duration, this.audio.currentTime + skipTime);
+            });
+
+            // Direct seek to specific position
+            navigator.mediaSession.setActionHandler('seekto', (details) => {
+                if (details.fastSeek && 'fastSeek' in this.audio) {
+                    this.audio.fastSeek(details.seekTime);
+                } else {
+                    this.audio.currentTime = details.seekTime;
+                }
+            });
+        }
+    }
+
+    // Update Media Session position state (called during playback)
+    updateMediaSessionPositionState() {
+        if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+            if (this.audio.duration && !isNaN(this.audio.duration)) {
+                try {
+                    navigator.mediaSession.setPositionState({
+                        duration: this.audio.duration,
+                        playbackRate: this.audio.playbackRate,
+                        position: this.audio.currentTime
+                    });
+                } catch (error) {
+                    // Ignore errors if position state is not supported
+                    console.log('Position state not supported:', error);
+                }
+            }
+        }
+    }
+
+    // Drag and drop handlers for offline file uploads
+    handleDragOver(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        event.dataTransfer.dropEffect = 'copy';
+        document.body.classList.add('drag-over');
+    }
+
+    handleDragLeave(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.target === document.body) {
+            document.body.classList.remove('drag-over');
+        }
+    }
+
+    async handleDrop(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        document.body.classList.remove('drag-over');
+
+        const files = Array.from(event.dataTransfer.files).filter(file =>
+            file.type.startsWith('audio/') ||
+            file.type.startsWith('video/') ||
+            file.name.match(/\.(mp3|wav|ogg|m4a|flac|mp4|m4v|aac|wma|webm|mpeg)$/i)
+        );
+
+        if (files.length === 0) {
+            this.statusText.textContent = 'Нет аудио файлов для добавления';
+            setTimeout(() => {
+                this.updateOnlineStatus(navigator.onLine);
+            }, 2000);
+            return;
+        }
+
+        this.statusText.textContent = `Добавление ${files.length} песен...`;
+
+        try {
+            for (const file of files) {
+                await this.db.addSong(file);
+            }
+
+            await this.loadPlaylist();
+            this.statusText.textContent = `Добавлено ${files.length} песен!`;
+            setTimeout(() => {
+                this.updateOnlineStatus(navigator.onLine);
+            }, 2000);
+        } catch (error) {
+            console.error('Error adding songs via drag and drop:', error);
+            this.statusText.textContent = 'Ошибка добавления песен';
         }
     }
 }

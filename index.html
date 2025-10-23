@@ -27,13 +27,16 @@
         </header>
 
         <div class="add-songs-section">
-            <input type="file" id="fileInput" accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/m4a,audio/flac,.mp3,.wav,.ogg,.m4a,.flac" multiple hidden>
+            <input type="file" id="fileInput" accept="audio/*,video/mp4,video/x-m4v,.mp3,.wav,.ogg,.m4a,.flac,.mp4,.m4v,.aac,.wma,.webm" multiple hidden>
             <button id="addSongsBtn" class="btn-primary">
                 <span>📁 Добавить песни</span>
             </button>
             <button id="clearAllBtn" class="btn-danger">
                 <span>🗑️ Очистить всё</span>
             </button>
+            <p style="font-size: 0.85em; color: rgba(255,255,255,0.6); margin-top: 8px; text-align: center;">
+                Или перетащите аудио/видео файлы в окно (работает офлайн!)
+            </p>
         </div>
 
         <div class="now-playing">
