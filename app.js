@@ -7,6 +7,9 @@ class MusicDB {
     }
 
     async init() {
+        // Request persistent storage for larger quota
+        await this.requestPersistentStorage();
+
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(this.dbName, this.version);
 
@@ -26,6 +29,102 @@ class MusicDB {
                 }
             };
         });
+    }
+
+    async requestPersistentStorage() {
+        // STEP 1: Request persistent storage to unlock maximum quota
+        if (navigator.storage && navigator.storage.persist) {
+            try {
+                // Check if already persisted
+                const isPersisted = await navigator.storage.persisted();
+
+                if (!isPersisted) {
+                    // Request persistent storage (this unlocks maximum quota)
+                    const granted = await navigator.storage.persist();
+                    if (granted) {
+                        console.log('✅ Persistent storage GRANTED - Maximum quota unlocked!');
+                        console.log('   → Data will NEVER be evicted by browser');
+                        console.log('   → Available space increased to MAXIMUM');
+                    } else {
+                        console.log('⚠️ Persistent storage denied - using limited quota');
+                        console.log('   → Add app to home screen to unlock more storage');
+                    }
+                } else {
+                    console.log('✅ Persistent storage already active - Maximum quota enabled');
+                }
+            } catch (error) {
+                console.log('Persistent storage request error:', error);
+            }
+        }
+
+        // STEP 2: Request MAXIMUM quota using legacy API (for older browsers)
+        if (navigator.webkitPersistentStorage && navigator.webkitPersistentStorage.requestQuota) {
+            try {
+                // Request 500 GB (browser will grant maximum available)
+                const requestedBytes = 500 * 1024 * 1024 * 1024; // 500 GB
+                navigator.webkitPersistentStorage.requestQuota(
+                    requestedBytes,
+                    (grantedBytes) => {
+                        const grantedGB = (grantedBytes / (1024 * 1024 * 1024)).toFixed(2);
+                        console.log(`✅ Legacy quota granted: ${grantedGB} GB`);
+                    },
+                    (error) => {
+                        console.log('Legacy quota request failed:', error);
+                    }
+                );
+            } catch (error) {
+                console.log('Legacy quota API error:', error);
+            }
+        }
+
+        // STEP 3: Estimate and display available storage
+        if (navigator.storage && navigator.storage.estimate) {
+            try {
+                const estimate = await navigator.storage.estimate();
+                const usedMB = (estimate.usage / (1024 * 1024)).toFixed(1);
+                const quotaMB = (estimate.quota / (1024 * 1024)).toFixed(0);
+                const quotaGB = (estimate.quota / (1024 * 1024 * 1024)).toFixed(2);
+                const percentUsed = ((estimate.usage / estimate.quota) * 100).toFixed(1);
+
+                console.log('═══════════════════════════════════════');
+                console.log('📊 STORAGE QUOTA INFORMATION:');
+                console.log(`   Used: ${usedMB} MB`);
+                console.log(`   Available: ${quotaMB} MB (${quotaGB} GB)`);
+                console.log(`   Usage: ${percentUsed}%`);
+                console.log('═══════════════════════════════════════');
+
+                // Estimate how many songs can fit
+                const avgSongSizeMB = 4; // Average MP3 song ~4MB
+                const availableSpace = estimate.quota - estimate.usage;
+                const estimatedSongs = Math.floor(availableSpace / (avgSongSizeMB * 1024 * 1024));
+                console.log(`🎵 Estimated capacity: ~${estimatedSongs.toLocaleString()} songs (${avgSongSizeMB}MB each)`);
+                console.log('═══════════════════════════════════════');
+
+            } catch (error) {
+                console.log('Storage estimate error:', error);
+            }
+        }
+
+        // STEP 4: Request File System API quota (for maximum storage on supporting browsers)
+        if (window.requestFileSystem || window.webkitRequestFileSystem) {
+            try {
+                const requestFS = window.requestFileSystem || window.webkitRequestFileSystem;
+                const requestedBytes = 500 * 1024 * 1024 * 1024; // 500 GB
+
+                requestFS(
+                    window.PERSISTENT,
+                    requestedBytes,
+                    (fs) => {
+                        console.log('✅ File System quota granted');
+                    },
+                    (error) => {
+                        // Silent fail - this API is deprecated but helps on older Chrome
+                    }
+                );
+            } catch (error) {
+                // Silent fail
+            }
+        }
     }
 
     async addSong(file) {
@@ -210,6 +309,10 @@ class MusicPlayer {
 
             await this.loadPlaylist();
             this.statusText.textContent = `Добавлено ${files.length} песен!`;
+
+            // Show storage info after adding songs
+            this.showStorageInfo();
+
             setTimeout(() => {
                 this.updateOnlineStatus(navigator.onLine);
             }, 2000);
@@ -451,6 +554,25 @@ class MusicPlayer {
 
     updateSongCount() {
         this.songCount.textContent = this.playlist.length;
+    }
+
+    async showStorageInfo() {
+        // Show storage usage info to user
+        if (navigator.storage && navigator.storage.estimate) {
+            try {
+                const estimate = await navigator.storage.estimate();
+                const usedMB = (estimate.usage / (1024 * 1024)).toFixed(1);
+                const quotaMB = (estimate.quota / (1024 * 1024)).toFixed(0);
+                const percentUsed = ((estimate.usage / estimate.quota) * 100).toFixed(1);
+
+                console.log(`📊 Storage: ${usedMB} MB / ${quotaMB} MB (${percentUsed}%)`);
+
+                // Optionally show in status (uncomment if you want to display to user)
+                // this.statusText.textContent = `Хранилище: ${usedMB} МБ / ${quotaMB} МБ`;
+            } catch (error) {
+                console.log('Storage info error:', error);
+            }
+        }
     }
 
     formatTime(seconds) {
