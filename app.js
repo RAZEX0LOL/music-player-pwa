@@ -29,12 +29,14 @@ class MusicDB {
     }
 
     async addSong(file) {
-        const transaction = this.db.transaction(['songs'], 'readwrite');
-        const store = transaction.objectStore('songs');
-
-        // Convert File to ArrayBuffer for reliable IndexedDB storage
+        // Convert File to ArrayBuffer BEFORE creating transaction
+        // (to avoid transaction timeout)
         const arrayBuffer = await file.arrayBuffer();
         const blob = new Blob([arrayBuffer], { type: file.type });
+
+        // NOW create transaction after async work is done
+        const transaction = this.db.transaction(['songs'], 'readwrite');
+        const store = transaction.objectStore('songs');
 
         const song = {
             name: file.name,
