@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Icon Generator</title>
+</head>
+<body>
+    <h2>Icon Generator - Right click and save each icon</h2>
+    <p>Save these as icon-192.png and icon-512.png</p>
+
+    <div>
+        <p>192x192 icon:</p>
+        <canvas id="icon192" width="192" height="192"></canvas>
+    </div>
+
+    <div>
+        <p>512x512 icon:</p>
+        <canvas id="icon512" width="512" height="512"></canvas>
+    </div>
+
+    <script>
+        function createIcon(canvasId, size) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+
+            // Background gradient
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+
+            // Music note
+            ctx.fillStyle = 'white';
+            ctx.font = `${size * 0.5}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🎵', size / 2, size / 2);
+        }
+
+        createIcon('icon192', 192);
+        createIcon('icon512', 512);
+    </script>
+</body>
+</html>
