@@ -1,10 +1,11 @@
-const CACHE_NAME = 'music-player-v1';
+const CACHE_NAME = 'music-player-v2';
 const urlsToCache = [
     './',
     './index.html',
     './styles.css',
     './app.js',
-    './manifest.json'
+    './manifest.json',
+    './icon.svg'
 ];
 
 // Install service worker and cache assets
@@ -50,7 +51,7 @@ self.addEventListener('fetch', (event) => {
 
                 return fetch(fetchRequest).then((response) => {
                     // Check if valid response
-                    if (!response || response.status !== 200 || response.type !== 'basic') {
+                    if (!response || response.status !== 200) {
                         return response;
                     }
 
