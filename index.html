@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#16213e">
     <meta name="description" content="Офлайн музыкальный плеер PWA">
+
+    <!-- iOS PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Музыка">
+    <link rel="apple-touch-icon" href="./icon.svg">
+
     <title>Офлайн Музыкальный Плеер</title>
     <link rel="manifest" href="./manifest.json">
     <link rel="stylesheet" href="./styles.css">
@@ -20,7 +27,7 @@
         </header>
 
         <div class="add-songs-section">
-            <input type="file" id="fileInput" accept="audio/*" multiple hidden>
+            <input type="file" id="fileInput" accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/m4a,audio/flac,.mp3,.wav,.ogg,.m4a,.flac" multiple hidden>
             <button id="addSongsBtn" class="btn-primary">
                 <span>📁 Добавить песни</span>
             </button>
