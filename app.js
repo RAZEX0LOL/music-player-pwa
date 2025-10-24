@@ -56,7 +56,7 @@ const translations = {
         youtubeFormat: 'Формат:',
         youtubeVideo: '🎬 Видео (MP4)',
         youtubeAudio: '🎵 Только аудио (MP3)',
-        youtubeButton: '🚀 Открыть сайт загрузки',
+        youtubeDownload: '📥 Скачать',
         youtubeHow: '💡 Как это работает:',
         youtubeStep1: '1. Откроется проверенный сайт для загрузки',
         youtubeStep2: '2. Скачайте файл там и добавьте в плеер',
@@ -123,7 +123,7 @@ const translations = {
         youtubeFormat: 'Format:',
         youtubeVideo: '🎬 Video (MP4)',
         youtubeAudio: '🎵 Audio Only (MP3)',
-        youtubeButton: '🚀 Open Download Site',
+        youtubeDownload: '📥 Download',
         youtubeHow: '💡 How it works:',
         youtubeStep1: '1. A trusted download website will open',
         youtubeStep2: '2. Download the file there and add to player',
@@ -1093,7 +1093,9 @@ function initYoutubeModal() {
     downloadBtn.addEventListener('click', async () => {
         const url = urlInput.value.trim();
         if (!url) {
-            alert(t('youtubeNeedsInternet').split('\n\n')[0]);
+            alert(currentLang === 'ru'
+                ? 'Пожалуйста, вставьте ссылку YouTube'
+                : 'Please paste a YouTube URL');
             return;
         }
 
@@ -1108,7 +1110,15 @@ function initYoutubeModal() {
         // Show progress
         progressDiv.style.display = 'block';
         downloadBtn.disabled = true;
-        downloadBtn.textContent = currentLang === 'ru' ? '⏳ Загрузка...' : '⏳ Downloading...';
+
+        const btnSpan = downloadBtn.querySelector('span');
+        const originalText = btnSpan ? btnSpan.textContent : downloadBtn.textContent;
+
+        if (btnSpan) {
+            btnSpan.textContent = currentLang === 'ru' ? '⏳ Загрузка...' : '⏳ Downloading...';
+        } else {
+            downloadBtn.textContent = currentLang === 'ru' ? '⏳ Загрузка...' : '⏳ Downloading...';
+        }
 
         try {
             await downloadYoutubeVideo(url, format, quality, (progress) => {
@@ -1120,7 +1130,13 @@ function initYoutubeModal() {
             urlInput.value = '';
             progressDiv.style.display = 'none';
             downloadBtn.disabled = false;
-            downloadBtn.textContent = currentLang === 'ru' ? '🚀 Открыть сайт загрузки' : '🚀 Open Download Site';
+
+            // Reset button text
+            if (btnSpan) {
+                btnSpan.textContent = currentLang === 'ru' ? '📥 Скачать' : '📥 Download';
+            } else {
+                downloadBtn.textContent = currentLang === 'ru' ? '📥 Скачать' : '📥 Download';
+            }
 
             // Reload playlist to show new track
             await window.player.loadPlaylist();
@@ -1136,10 +1152,23 @@ function initYoutubeModal() {
 
         } catch (error) {
             console.error('YouTube download error:', error);
-            alert(error.message);
+
+            // Only show alert if not canceled by user
+            if (!error.message.includes('CORS restrictions')) {
+                alert(currentLang === 'ru'
+                    ? `Ошибка: ${error.message}`
+                    : `Error: ${error.message}`);
+            }
+
             progressDiv.style.display = 'none';
             downloadBtn.disabled = false;
-            downloadBtn.textContent = currentLang === 'ru' ? '🚀 Открыть сайт загрузки' : '🚀 Open Download Site';
+
+            // Reset button text
+            if (btnSpan) {
+                btnSpan.textContent = currentLang === 'ru' ? '📥 Скачать' : '📥 Download';
+            } else {
+                downloadBtn.textContent = currentLang === 'ru' ? '📥 Скачать' : '📥 Download';
+            }
         }
     });
 
