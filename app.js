@@ -396,6 +396,17 @@ class MusicPlayer {
         this.videoDisplay.addEventListener('timeupdate', () => {
             if (this.videoDisplay.src) {
                 this.updateProgress();
+                // Sync video with audio (if both are playing)
+                if (this.audio.src && !this.audio.paused && Math.abs(this.videoDisplay.currentTime - this.audio.currentTime) > 0.3) {
+                    this.videoDisplay.currentTime = this.audio.currentTime;
+                }
+            }
+        });
+
+        // Sync audio with video when seeking
+        this.audio.addEventListener('seeked', () => {
+            if (this.videoDisplay.src && this.videoDisplay.muted) {
+                this.videoDisplay.currentTime = this.audio.currentTime;
             }
         });
 
@@ -455,9 +466,11 @@ class MusicPlayer {
 
     // YouTube modal removed
 
-    // Helper method to get the active media element (video or audio)
+    // Helper method to get the active media element (always audio for background playback)
     getActiveMediaElement() {
-        return this.videoDisplay.src ? this.videoDisplay : this.audio;
+        // Always return audio element because it plays in background when screen is locked
+        // For video files, both video and audio elements are loaded, but audio provides the sound
+        return this.audio;
     }
 
     handleSearch(query) {
@@ -679,29 +692,45 @@ class MusicPlayer {
                           song.name.match(/\.(mp4|m4v|webm|mpeg)$/i);
 
             if (isVideo) {
-                // For video files: use video element for both visual and audio
+                // For video files: load both video (for display) and audio (for background playback)
                 this.videoDisplay.src = url;
                 this.videoDisplay.classList.add('show');
                 this.vinylDisc.style.display = 'none';
 
-                // Don't load audio element for video files
-                this.audio.src = '';
-                this.audio.pause();
+                // ALSO load audio element with same source for background playback when screen locks
+                this.audio.src = url;
 
-                // Load and play video
+                // Mute video element (audio element will play the sound)
+                this.videoDisplay.muted = true;
+                this.videoDisplay.volume = 0;
+
+                // Load both elements
                 this.videoDisplay.load();
+                this.audio.load();
 
                 try {
-                    await this.videoDisplay.play();
+                    // Play both - video for visual, audio for sound (works when locked)
+                    await Promise.all([
+                        this.videoDisplay.play(),
+                        this.audio.play()
+                    ]);
                     this.isPlaying = true;
+                    if ('mediaSession' in navigator) {
+                        navigator.mediaSession.playbackState = 'playing';
+                    }
                 } catch (playError) {
                     console.error('Video playback error:', playError);
                     this.isPlaying = false;
+                    if ('mediaSession' in navigator) {
+                        navigator.mediaSession.playbackState = 'paused';
+                    }
                 }
             } else {
                 // For audio files: use audio element and show vinyl
                 this.videoDisplay.src = '';
                 this.videoDisplay.pause();
+                this.videoDisplay.muted = false;
+                this.videoDisplay.volume = this.audio.volume;
                 this.videoDisplay.classList.remove('show');
                 this.vinylDisc.style.display = 'flex';
 
@@ -711,9 +740,15 @@ class MusicPlayer {
                 try {
                     await this.audio.play();
                     this.isPlaying = true;
+                    if ('mediaSession' in navigator) {
+                        navigator.mediaSession.playbackState = 'playing';
+                    }
                 } catch (playError) {
                     console.error('Audio playback error:', playError);
                     this.isPlaying = false;
+                    if ('mediaSession' in navigator) {
+                        navigator.mediaSession.playbackState = 'paused';
+                    }
                 }
             }
 
@@ -745,9 +780,15 @@ class MusicPlayer {
         if (this.isPlaying) {
             media.pause();
             this.vinylDisc.classList.remove('spinning');
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.playbackState = 'paused';
+            }
         } else {
             await media.play();
             this.vinylDisc.classList.add('spinning');
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.playbackState = 'playing';
+            }
         }
 
         this.isPlaying = !this.isPlaying;
@@ -853,33 +894,53 @@ class MusicPlayer {
         if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: songName.replace(/\.[^/.]+$/, ''),
-                artist: 'Моя Музыка',
-                album: 'Офлайн Музыкальный Плеер'
+                artist: currentLang === 'ru' ? 'Моя Музыка' : 'My Music',
+                album: currentLang === 'ru' ? 'Офлайн Музыкальный Плеер' : 'Offline Music Player',
+                artwork: [
+                    { src: './icon.svg', sizes: '512x512', type: 'image/svg+xml' },
+                    { src: './icon.svg', sizes: '192x192', type: 'image/svg+xml' },
+                    { src: './icon.svg', sizes: '96x96', type: 'image/svg+xml' }
+                ]
             });
 
             // Basic playback controls
-            navigator.mediaSession.setActionHandler('play', () => this.togglePlay());
-            navigator.mediaSession.setActionHandler('pause', () => this.togglePlay());
+            navigator.mediaSession.setActionHandler('play', () => {
+                if (!this.isPlaying) this.togglePlay();
+            });
+            navigator.mediaSession.setActionHandler('pause', () => {
+                if (this.isPlaying) this.togglePlay();
+            });
+            navigator.mediaSession.setActionHandler('stop', () => {
+                const media = this.getActiveMediaElement();
+                media.pause();
+                media.currentTime = 0;
+                this.isPlaying = false;
+                this.updatePlayButton();
+                this.vinylDisc.classList.remove('spinning');
+            });
             navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrevious());
             navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext());
 
             // Seek controls for lock screen rewind/fast-forward
             navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+                const media = this.getActiveMediaElement();
                 const skipTime = details.seekOffset || 10;
-                this.audio.currentTime = Math.max(0, this.audio.currentTime - skipTime);
+                media.currentTime = Math.max(0, media.currentTime - skipTime);
             });
 
             navigator.mediaSession.setActionHandler('seekforward', (details) => {
+                const media = this.getActiveMediaElement();
                 const skipTime = details.seekOffset || 10;
-                this.audio.currentTime = Math.min(this.audio.duration, this.audio.currentTime + skipTime);
+                media.currentTime = Math.min(media.duration, media.currentTime + skipTime);
             });
 
             // Direct seek to specific position
             navigator.mediaSession.setActionHandler('seekto', (details) => {
-                if (details.fastSeek && 'fastSeek' in this.audio) {
-                    this.audio.fastSeek(details.seekTime);
+                const media = this.getActiveMediaElement();
+                if (details.fastSeek && 'fastSeek' in media) {
+                    media.fastSeek(details.seekTime);
                 } else {
-                    this.audio.currentTime = details.seekTime;
+                    media.currentTime = details.seekTime;
                 }
             });
         }
@@ -888,12 +949,13 @@ class MusicPlayer {
     // Update Media Session position state (called during playback)
     updateMediaSessionPositionState() {
         if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
-            if (this.audio.duration && !isNaN(this.audio.duration)) {
+            const media = this.getActiveMediaElement();
+            if (media.duration && !isNaN(media.duration)) {
                 try {
                     navigator.mediaSession.setPositionState({
-                        duration: this.audio.duration,
-                        playbackRate: this.audio.playbackRate,
-                        position: this.audio.currentTime
+                        duration: media.duration,
+                        playbackRate: media.playbackRate,
+                        position: media.currentTime
                     });
                 } catch (error) {
                     // Ignore errors if position state is not supported
