@@ -789,7 +789,7 @@ class MusicPlayer {
                 try {
                     await this.audio.play();
                     this.isPlaying = true;
-                    if ('mediaSession' in navigator') {
+                    if ('mediaSession' in navigator) {
                         navigator.mediaSession.playbackState = 'playing';
                     }
                 } catch (playError) {
