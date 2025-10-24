@@ -1153,112 +1153,186 @@ function initYoutubeModal() {
     });
 }
 
-// YouTube download function using Cobalt API (no backend needed!)
+// YouTube download function - Direct implementation without external dependencies
 async function downloadYoutubeVideo(url, format, quality, progressCallback) {
-    progressCallback(10);
+    progressCallback(5);
+    console.log('=== YouTube Download Started ===');
+    console.log('URL:', url);
+    console.log('Format:', format);
+    console.log('Quality:', quality);
 
     try {
-        // Using Cobalt API - a free, open-source YouTube downloader API
-        // Multiple instances for reliability
+        // Method 1: Try Cobalt API with CORS proxy
+        progressCallback(10);
+
         const cobaltInstances = [
-            'https://co.wuk.sh',
-            'https://cobalt-api.kwiatekmiki.com',
-            'https://api.cobalt.tools'
+            'https://api.cobalt.tools',
+            'https://co.wuk.sh'
         ];
 
-        progressCallback(20);
-
-        // Prepare request
         const requestBody = {
             url: url,
             vCodec: 'h264',
-            vQuality: quality === 'highest' ? '1080' : (quality === 'high' ? '720' : '480'),
+            vQuality: quality === 'highest' ? '1080' : (quality === 'high' ? '720' : (quality === 'medium' ? '480' : '360')),
             aFormat: format === 'audio' ? 'mp3' : 'best',
             isAudioOnly: format === 'audio',
-            filenamePattern: 'basic'
+            filenamePattern: 'basic',
+            downloadMode: 'auto'
         };
 
-        progressCallback(30);
+        console.log('Request payload:', JSON.stringify(requestBody, null, 2));
+        progressCallback(15);
 
-        // Try each instance until one works
         let downloadUrl = null;
-        let lastError = null;
+        let apiError = null;
 
-        for (const instance of cobaltInstances) {
+        // Try Cobalt API instances
+        for (let i = 0; i < cobaltInstances.length; i++) {
+            const instance = cobaltInstances[i];
             try {
-                console.log(`Trying Cobalt instance: ${instance}`);
+                console.log(`\n[Attempt ${i + 1}/${cobaltInstances.length}] Trying: ${instance}`);
+                progressCallback(20 + (i * 15));
 
                 const response = await fetch(instance + '/api/json', {
                     method: 'POST',
                     headers: {
                         'Accept': 'application/json',
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Origin': window.location.origin
                     },
                     body: JSON.stringify(requestBody)
                 });
 
-                progressCallback(50);
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorText = await response.text();
+                    console.error(`HTTP Error ${response.status}:`, errorText);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
 
                 const data = await response.json();
-                console.log('Cobalt response:', data);
+                console.log('API Response:', JSON.stringify(data, null, 2));
 
-                progressCallback(70);
-
-                if (data.status === 'redirect' || data.status === 'stream') {
+                if (data.status === 'redirect' && data.url) {
                     downloadUrl = data.url;
+                    console.log('✅ Got redirect URL:', downloadUrl);
+                    break;
+                } else if (data.status === 'stream' && data.url) {
+                    downloadUrl = data.url;
+                    console.log('✅ Got stream URL:', downloadUrl);
+                    break;
+                } else if (data.status === 'picker' && data.picker && data.picker.length > 0) {
+                    downloadUrl = data.picker[0].url;
+                    console.log('✅ Got picker URL:', downloadUrl);
                     break;
                 } else if (data.status === 'error') {
-                    throw new Error(data.text || 'Unknown error from Cobalt');
+                    const errorMsg = data.text || 'Unknown API error';
+                    console.error('❌ API returned error:', errorMsg);
+                    throw new Error(errorMsg);
+                } else {
+                    console.error('❌ Unexpected response structure:', data);
+                    throw new Error('Unexpected API response format');
                 }
 
             } catch (error) {
-                console.error(`Instance ${instance} failed:`, error);
-                lastError = error;
+                console.error(`❌ Instance ${instance} failed:`, error.message);
+                apiError = error;
+
+                if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                    console.error('   → Likely CORS issue or network error');
+                }
+
                 continue;
             }
         }
 
-        if (!downloadUrl) {
-            throw new Error(lastError?.message || 'All Cobalt instances failed');
-        }
+        progressCallback(50);
 
-        progressCallback(80);
+        // If no download URL obtained, show user options
+        if (!downloadUrl) {
+            console.error('=== All API attempts failed ===');
+            console.error('Last error:', apiError);
+
+            // Show user-friendly error with external site option
+            const useExternalSite = confirm(
+                currentLang === 'ru'
+                    ? `⚠️ Не удалось загрузить через API\n\nПричины:\n• CORS ограничения браузера\n• API недоступен\n• Видео защищено\n\nХотите открыть внешний сайт для загрузки?\n(Откроется в новой вкладке)`
+                    : `⚠️ API download failed\n\nReasons:\n• Browser CORS restrictions\n• API unavailable\n• Video protected\n\nOpen external download site?\n(Opens in new tab)`
+            );
+
+            if (useExternalSite) {
+                const externalUrl = format === 'audio'
+                    ? `https://yt1s.com/en/youtube-to-mp3?q=${encodeURIComponent(url)}`
+                    : `https://yt1s.com/en/youtube-to-mp4?q=${encodeURIComponent(url)}`;
+
+                console.log('Opening external site:', externalUrl);
+                window.open(externalUrl, '_blank');
+            }
+
+            throw new Error('API download not available - CORS restrictions');
+        }
 
         // Download the file
-        const fileResponse = await fetch(downloadUrl);
+        console.log('\n=== Starting file download ===');
+        console.log('Download URL:', downloadUrl);
+        progressCallback(60);
+
+        const fileResponse = await fetch(downloadUrl, {
+            mode: 'cors',
+            credentials: 'omit'
+        });
+
+        console.log('File response status:', fileResponse.status);
+        console.log('File response headers:', [...fileResponse.headers.entries()]);
+
         if (!fileResponse.ok) {
-            throw new Error('Failed to download file');
+            throw new Error(`File download failed: HTTP ${fileResponse.status}`);
         }
 
+        progressCallback(75);
+
+        const blob = await fileResponse.blob();
+        console.log('✅ File downloaded:', blob.size, 'bytes, type:', blob.type);
+
+        if (blob.size === 0) {
+            throw new Error('Downloaded file is empty');
+        }
+
+        progressCallback(85);
+
+        // Create proper filename
+        const timestamp = Date.now();
+        const extension = format === 'audio' ? 'mp3' : 'mp4';
+        const filename = `youtube-${extension}-${timestamp}.${extension}`;
+
+        // Ensure correct MIME type
+        const mimeType = format === 'audio' ? 'audio/mpeg' : 'video/mp4';
+        const file = new File([blob], filename, { type: mimeType });
+
+        console.log('Created file:', filename, 'size:', file.size);
         progressCallback(90);
 
-        // Get the blob
-        const blob = await fileResponse.blob();
-
-        // Create filename
-        const filename = `youtube-${format === 'audio' ? 'audio' : 'video'}-${Date.now()}.${format === 'audio' ? 'mp3' : 'mp4'}`;
-        const file = new File([blob], filename, { type: blob.type });
+        // Add to database
+        console.log('Adding to IndexedDB...');
+        await window.player.db.addSong(file);
 
         progressCallback(95);
 
-        // Add to player
-        await window.player.db.addSong(file);
+        // Reload playlist
+        await window.player.loadPlaylist();
 
         progressCallback(100);
+        console.log('=== Download Complete! ===\n');
 
         return file;
 
     } catch (error) {
-        console.error('YouTube download error:', error);
-        throw new Error(
-            currentLang === 'ru'
-                ? `Ошибка загрузки: ${error.message}\n\nПопробуйте другое видео или используйте внешний сайт загрузки.`
-                : `Download error: ${error.message}\n\nTry another video or use external download site.`
-        );
+        console.error('\n=== YouTube Download Failed ===');
+        console.error('Error:', error.message);
+        console.error('Stack:', error.stack);
+        throw error;
     }
 }
 
@@ -1267,37 +1341,6 @@ function extractYouTubeVideoId(url) {
     const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
     const match = url.match(regExp);
     return (match && match[7].length === 11) ? match[7] : null;
-}
-
-// Open external YouTube downloader service
-function openYouTubeDownloader(url, format) {
-    const videoId = extractYouTubeVideoId(url);
-    if (!videoId) {
-        alert('Неверный URL YouTube / Invalid YouTube URL');
-        return;
-    }
-
-    // Use trusted third-party services
-    // Users can download there and then add to the player
-    const services = {
-        audio: [
-            `https://yt1s.com/en/youtube-to-mp3?q=${encodeURIComponent(url)}`,
-            `https://ytmp3.nu/en/?url=${encodeURIComponent(url)}`,
-            `https://320ytmp3.com/en/?url=${encodeURIComponent(url)}`
-        ],
-        video: [
-            `https://yt1s.com/en/youtube-to-mp4?q=${encodeURIComponent(url)}`,
-            `https://y2mate.com/en/youtube-mp4/${videoId}`,
-            `https://www.y2mate.com/youtube/${videoId}`
-        ]
-    };
-
-    const serviceUrl = format === 'audio' ? services.audio[0] : services.video[0];
-
-    // Open in new tab
-    window.open(serviceUrl, '_blank');
-
-    return serviceUrl;
 }
 
 // Language toggle initialization
