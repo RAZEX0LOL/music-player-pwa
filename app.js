@@ -1089,43 +1089,58 @@ function initYoutubeModal() {
         progressDiv.style.display = 'none';
     });
 
-    // Download from YouTube - Open external service
+    // Download from YouTube - Direct download using Cobalt API
     downloadBtn.addEventListener('click', async () => {
         const url = urlInput.value.trim();
         if (!url) {
-            alert('Пожалуйста, введите URL YouTube / Please enter YouTube URL');
+            alert(t('youtubeNeedsInternet').split('\n\n')[0]);
             return;
         }
 
         if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
-            alert('Неверный URL YouTube / Invalid YouTube URL');
+            alert(currentLang === 'ru' ? 'Неверный URL YouTube' : 'Invalid YouTube URL');
             return;
         }
 
         const format = document.querySelector('input[name="ytFormat"]:checked').value;
+        const quality = document.getElementById('ytQuality').value;
 
-        // Open external downloader service
-        const serviceUrl = openYouTubeDownloader(url, format);
+        // Show progress
+        progressDiv.style.display = 'block';
+        downloadBtn.disabled = true;
+        downloadBtn.textContent = currentLang === 'ru' ? '⏳ Загрузка...' : '⏳ Downloading...';
 
-        // Show instructions
-        const instructions =
-            '✅ Открыт сайт загрузки / Download site opened\n\n' +
-            '📝 Инструкция / Instructions:\n\n' +
-            '1️⃣ Скачайте файл на этом сайте\n' +
-            '1️⃣ Download the file on that website\n\n' +
-            '2️⃣ Вернитесь в плеер\n' +
-            '2️⃣ Return to the player\n\n' +
-            '3️⃣ Нажмите "📁 Добавить треки"\n' +
-            '3️⃣ Click "📁 Add Tracks"\n\n' +
-            '4️⃣ Выберите скачанный файл\n' +
-            '4️⃣ Select the downloaded file\n\n' +
-            '✅ Готово! / Done!';
+        try {
+            await downloadYoutubeVideo(url, format, quality, (progress) => {
+                progressBar.style.width = progress + '%';
+            });
 
-        alert(instructions);
+            // Success!
+            modal.classList.remove('show');
+            urlInput.value = '';
+            progressDiv.style.display = 'none';
+            downloadBtn.disabled = false;
+            downloadBtn.textContent = currentLang === 'ru' ? '🚀 Открыть сайт загрузки' : '🚀 Open Download Site';
 
-        // Close modal
-        modal.classList.remove('show');
-        urlInput.value = '';
+            // Reload playlist to show new track
+            await window.player.loadPlaylist();
+
+            // Show success message
+            window.player.statusText.textContent = currentLang === 'ru'
+                ? '✅ Видео успешно загружено!'
+                : '✅ Video downloaded successfully!';
+
+            setTimeout(() => {
+                window.player.updateOnlineStatus(navigator.onLine);
+            }, 3000);
+
+        } catch (error) {
+            console.error('YouTube download error:', error);
+            alert(error.message);
+            progressDiv.style.display = 'none';
+            downloadBtn.disabled = false;
+            downloadBtn.textContent = currentLang === 'ru' ? '🚀 Открыть сайт загрузки' : '🚀 Open Download Site';
+        }
     });
 
     // Close modal when clicking outside of modal content
@@ -1138,62 +1153,113 @@ function initYoutubeModal() {
     });
 }
 
-// YouTube download function using third-party API
+// YouTube download function using Cobalt API (no backend needed!)
 async function downloadYoutubeVideo(url, format, quality, progressCallback) {
-    // Extract video ID from YouTube URL
-    const videoId = extractYouTubeVideoId(url);
-    if (!videoId) {
-        throw new Error('Неверный URL YouTube / Invalid YouTube URL');
-    }
-
     progressCallback(10);
 
-    // OPTION 1: Use a public API service (free but may have rate limits)
-    // Note: These services may go down or change. Always have fallbacks.
-
     try {
-        // Using a CORS-friendly API proxy
-        // This is a demonstration - you may need to find current working APIs
-        const apiUrl = format === 'audio'
-            ? `https://youtube-mp36.p.rapidapi.com/dl?id=${videoId}`
-            : `https://youtube-video-download-info.p.rapidapi.com/dl?id=${videoId}`;
+        // Using Cobalt API - a free, open-source YouTube downloader API
+        // Multiple instances for reliability
+        const cobaltInstances = [
+            'https://co.wuk.sh',
+            'https://cobalt-api.kwiatekmiki.com',
+            'https://api.cobalt.tools'
+        ];
+
+        progressCallback(20);
+
+        // Prepare request
+        const requestBody = {
+            url: url,
+            vCodec: 'h264',
+            vQuality: quality === 'highest' ? '1080' : (quality === 'high' ? '720' : '480'),
+            aFormat: format === 'audio' ? 'mp3' : 'best',
+            isAudioOnly: format === 'audio',
+            filenamePattern: 'basic'
+        };
 
         progressCallback(30);
 
-        // Note: RapidAPI requires an API key (free tier available)
-        // For a truly backend-free solution, you'd need to use a public API
-        // Here's an alternative approach using a public service:
+        // Try each instance until one works
+        let downloadUrl = null;
+        let lastError = null;
 
-        const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${videoId}`)}`);
+        for (const instance of cobaltInstances) {
+            try {
+                console.log(`Trying Cobalt instance: ${instance}`);
 
-        progressCallback(50);
+                const response = await fetch(instance + '/api/json', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
 
-        if (!response.ok) {
-            throw new Error('Не удалось получить видео / Failed to fetch video');
+                progressCallback(50);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Cobalt response:', data);
+
+                progressCallback(70);
+
+                if (data.status === 'redirect' || data.status === 'stream') {
+                    downloadUrl = data.url;
+                    break;
+                } else if (data.status === 'error') {
+                    throw new Error(data.text || 'Unknown error from Cobalt');
+                }
+
+            } catch (error) {
+                console.error(`Instance ${instance} failed:`, error);
+                lastError = error;
+                continue;
+            }
         }
 
-        progressCallback(70);
+        if (!downloadUrl) {
+            throw new Error(lastError?.message || 'All Cobalt instances failed');
+        }
 
-        // This approach has limitations - YouTube actively blocks scraping
-        // Better solution: Use browser extension approach or redirect to web service
+        progressCallback(80);
 
-        throw new Error(
-            '⚠️ Для загрузки с YouTube рекомендуется:\n' +
-            '⚠️ For YouTube downloads, we recommend:\n\n' +
-            '1. Скачайте видео через https://yt1s.com или https://y2mate.com\n' +
-            '1. Download video via https://yt1s.com or https://y2mate.com\n\n' +
-            '2. Затем добавьте файл в плеер кнопкой "📁 Добавить треки"\n' +
-            '2. Then add the file to player using "📁 Add Tracks" button\n\n' +
-            '💡 Это быстрее и безопаснее!\n' +
-            '💡 This is faster and safer!'
-        );
+        // Download the file
+        const fileResponse = await fetch(downloadUrl);
+        if (!fileResponse.ok) {
+            throw new Error('Failed to download file');
+        }
+
+        progressCallback(90);
+
+        // Get the blob
+        const blob = await fileResponse.blob();
+
+        // Create filename
+        const filename = `youtube-${format === 'audio' ? 'audio' : 'video'}-${Date.now()}.${format === 'audio' ? 'mp3' : 'mp4'}`;
+        const file = new File([blob], filename, { type: blob.type });
+
+        progressCallback(95);
+
+        // Add to player
+        await window.player.db.addSong(file);
+
+        progressCallback(100);
+
+        return file;
 
     } catch (error) {
-        throw error;
+        console.error('YouTube download error:', error);
+        throw new Error(
+            currentLang === 'ru'
+                ? `Ошибка загрузки: ${error.message}\n\nПопробуйте другое видео или используйте внешний сайт загрузки.`
+                : `Download error: ${error.message}\n\nTry another video or use external download site.`
+        );
     }
-
-    // OPTION 2: Open external service in new tab (most reliable)
-    // This is what we'll actually implement below
 }
 
 // Helper function to extract YouTube video ID

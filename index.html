@@ -243,19 +243,32 @@
                 </div>
             </div>
 
+            <div class="youtube-quality-options">
+                <h3 data-lang-ru="Качество:" data-lang-en="Quality:">Качество:</h3>
+                <select id="ytQuality" class="quality-select">
+                    <option value="highest" data-lang-ru="Наилучшее" data-lang-en="Highest">Наилучшее</option>
+                    <option value="high" data-lang-ru="Высокое" data-lang-en="High">Высокое</option>
+                    <option value="medium" selected data-lang-ru="Среднее" data-lang-en="Medium">Среднее</option>
+                    <option value="low" data-lang-ru="Низкое" data-lang-en="Low">Низкое</option>
+                </select>
+            </div>
+
             <button id="downloadYoutubeBtn" class="btn-primary youtube-download-btn">
-                🚀 Открыть сайт загрузки / Open Download Site
+                <span data-lang-ru="📥 Скачать" data-lang-en="📥 Download">📥 Скачать</span>
             </button>
+
+            <div id="youtubeProgress" class="youtube-progress" style="display: none;">
+                <div class="progress-text" data-lang-ru="Загрузка..." data-lang-en="Downloading...">Загрузка...</div>
+                <div class="progress-bar-container">
+                    <div id="youtubeProgressBar" class="progress-bar-fill"></div>
+                </div>
+            </div>
 
             <div class="youtube-info-box">
                 <p style="font-size: 0.9em; line-height: 1.6;">
-                    <strong>💡 Как это работает / How it works:</strong><br>
-                    1. Откроется проверенный сайт для загрузки<br>
-                    1. A trusted download website will open<br><br>
-                    2. Скачайте файл там и добавьте в плеер<br>
-                    2. Download the file there and add to player<br><br>
-                    <em>Это безопасно и не требует бэкенда!</em><br>
-                    <em>Safe and no backend required!</em>
+                    <strong data-lang-ru="💡 Теперь работает в приложении!" data-lang-en="💡 Now works in-app!">💡 Теперь работает в приложении!</strong><br>
+                    <span data-lang-ru="Используется бесплатный API Cobalt" data-lang-en="Uses free Cobalt API">Используется бесплатный API Cobalt</span><br>
+                    <span data-lang-ru="Без бэкенда, полностью бесплатно!" data-lang-en="No backend, completely free!">Без бэкенда, полностью бесплатно!</span>
                 </p>
             </div>
 
