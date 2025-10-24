@@ -37,18 +37,12 @@
             <button id="addTracksBtn" class="btn-primary">
                 <span id="addTracksText" data-lang-ru="📁 Добавить треки" data-lang-en="📁 Add Tracks">📁 Добавить треки</span>
             </button>
-            <button id="addYoutubeBtn" class="btn-secondary">
-                <span id="youtubeBtnText" data-lang-ru="🔗 YouTube" data-lang-en="🔗 YouTube">🔗 YouTube</span>
-            </button>
             <button id="clearAllBtn" class="btn-danger">
                 <span id="clearAllText" data-lang-ru="🗑️ Очистить всё" data-lang-en="🗑️ Clear All">🗑️ Очистить всё</span>
             </button>
             <div class="offline-features-note">
                 <p id="dragDropHint" style="font-size: 0.85em; color: rgba(255,255,255,0.6); margin-top: 8px; text-align: center;" data-lang-ru="✅ Перетаскивание файлов - работает офлайн!" data-lang-en="✅ Drag & drop files - works offline!">
                     ✅ Перетаскивание файлов - работает офлайн!
-                </p>
-                <p id="youtubeHint" style="font-size: 0.75em; color: rgba(255,255,255,0.4); margin-top: 4px; text-align: center;" data-lang-ru="⚠️ YouTube загрузка требует интернет" data-lang-en="⚠️ YouTube download requires internet">
-                    ⚠️ YouTube загрузка требует интернет
                 </p>
             </div>
         </div>
@@ -206,78 +200,6 @@
                 💡 Video: watch music videos<br>
                 🎧 Аудио: экономия места (~80% меньше)<br>
                 🎧 Audio: save space (~80% smaller)
-            </p>
-        </div>
-    </div>
-
-    <!-- YouTube Download Modal -->
-    <div id="youtubeModal" class="modal">
-        <div class="modal-content youtube-modal">
-            <span class="close" id="youtubeModalClose">&times;</span>
-            <h2>🔗 Скачать с YouTube / Download from YouTube</h2>
-
-            <div class="online-required-banner">
-                <span class="online-icon">📶</span>
-                <div>
-                    <strong>Требуется подключение к интернету</strong><br>
-                    <strong>Internet connection required</strong>
-                </div>
-            </div>
-
-            <div class="youtube-input-section">
-                <input type="text" id="youtubeUrl" class="youtube-input" placeholder="Вставьте ссылку YouTube / Paste YouTube URL">
-                <p class="hint-text">Пример / Example: https://www.youtube.com/watch?v=...</p>
-            </div>
-
-            <div class="youtube-format-options">
-                <h3>Формат / Format:</h3>
-                <div class="radio-group">
-                    <label class="radio-option">
-                        <input type="radio" name="ytFormat" value="video" checked>
-                        <span>🎬 Видео (MP4)</span>
-                    </label>
-                    <label class="radio-option">
-                        <input type="radio" name="ytFormat" value="audio">
-                        <span>🎵 Только аудио (MP3)</span>
-                    </label>
-                </div>
-            </div>
-
-            <div class="youtube-quality-options">
-                <h3 data-lang-ru="Качество:" data-lang-en="Quality:">Качество:</h3>
-                <select id="ytQuality" class="quality-select">
-                    <option value="highest" data-lang-ru="Наилучшее" data-lang-en="Highest">Наилучшее</option>
-                    <option value="high" data-lang-ru="Высокое" data-lang-en="High">Высокое</option>
-                    <option value="medium" selected data-lang-ru="Среднее" data-lang-en="Medium">Среднее</option>
-                    <option value="low" data-lang-ru="Низкое" data-lang-en="Low">Низкое</option>
-                </select>
-            </div>
-
-            <button id="downloadYoutubeBtn" class="btn-primary youtube-download-btn">
-                <span data-lang-ru="📥 Скачать" data-lang-en="📥 Download">📥 Скачать</span>
-            </button>
-
-            <div id="youtubeProgress" class="youtube-progress" style="display: none;">
-                <div class="progress-text" data-lang-ru="Загрузка..." data-lang-en="Downloading...">Загрузка...</div>
-                <div class="progress-bar-container">
-                    <div id="youtubeProgressBar" class="progress-bar-fill"></div>
-                </div>
-            </div>
-
-            <div class="youtube-info-box">
-                <p style="font-size: 0.9em; line-height: 1.6;">
-                    <strong data-lang-ru="💡 Теперь работает в приложении!" data-lang-en="💡 Now works in-app!">💡 Теперь работает в приложении!</strong><br>
-                    <span data-lang-ru="Используется бесплатный API Cobalt" data-lang-en="Uses free Cobalt API">Используется бесплатный API Cobalt</span><br>
-                    <span data-lang-ru="Без бэкенда, полностью бесплатно!" data-lang-en="No backend, completely free!">Без бэкенда, полностью бесплатно!</span>
-                </p>
-            </div>
-
-            <p class="youtube-warning">
-                ⚠️ <strong>Важно / Important:</strong><br>
-                • Требуется интернет / Requires internet<br>
-                • Только публичные видео / Public videos only<br>
-                • Соблюдайте авторские права / Respect copyright laws<br>
-                • Сторонний сервис, не наш / Third-party service, not ours
             </p>
         </div>
     </div>

@@ -9,8 +9,7 @@ const translations = {
 
         // Buttons
         addTracks: '📁 Добавить треки',
-        youtube: '🔗 YouTube',
-        youtubeOffline: '⚠️ Офлайн',
+        // YouTube removed
         clearAll: '🗑️ Очистить всё',
 
         // Playlist
@@ -28,12 +27,10 @@ const translations = {
 
         // Drag and drop
         dragHint: '✅ Перетаскивание файлов - работает офлайн!',
-        youtubeWarning: '⚠️ YouTube загрузка требует интернет',
 
         // Alerts
         addTracksOffline: 'Используйте перетаскивание файлов (drag & drop) для добавления треков офлайн',
         noTracks: 'Пожалуйста, сначала добавьте треки!',
-        youtubeNeedsInternet: '⚠️ Эта функция требует интернет\n\nДля загрузки видео с YouTube необходимо подключение к интернету.\n\nПожалуйста, подключитесь к WiFi или мобильным данным.',
 
         // Status messages
         addingTracks: 'Добавление треков...',
@@ -46,26 +43,7 @@ const translations = {
         keepVideoDesc: 'Полный видеофайл с изображением',
         audioOnly: 'Только аудио',
         audioOnlyDesc: 'Меньше размер, только звук',
-        formatNote: '💡 Видео: можно смотреть клипы\n🎧 Аудио: экономия места (~80% меньше)',
-
-        // YouTube modal
-        youtubeTitle: '🔗 Скачать с YouTube',
-        youtubeOnlineBanner: 'Требуется подключение к интернету',
-        youtubePlaceholder: 'Вставьте ссылку YouTube',
-        youtubeExample: 'Пример: https://www.youtube.com/watch?v=...',
-        youtubeFormat: 'Формат:',
-        youtubeVideo: '🎬 Видео (MP4)',
-        youtubeAudio: '🎵 Только аудио (MP3)',
-        youtubeDownload: '📥 Скачать',
-        youtubeHow: '💡 Как это работает:',
-        youtubeStep1: '1. Откроется проверенный сайт для загрузки',
-        youtubeStep2: '2. Скачайте файл там и добавьте в плеер',
-        youtubeSafe: 'Это безопасно и не требует бэкенда!',
-        youtubeWarningTitle: '⚠️ Важно:',
-        youtubeWarning1: '• Требуется интернет',
-        youtubeWarning2: '• Только публичные видео',
-        youtubeWarning3: '• Соблюдайте авторские права',
-        youtubeWarning4: '• Сторонний сервис, не наш'
+        formatNote: '💡 Видео: можно смотреть клипы\n🎧 Аудио: экономия места (~80% меньше)'
     },
     en: {
         // Header
@@ -95,12 +73,10 @@ const translations = {
 
         // Drag and drop
         dragHint: '✅ Drag & drop files - works offline!',
-        youtubeWarning: '⚠️ YouTube download requires internet',
 
         // Alerts
         addTracksOffline: 'Use drag & drop to add tracks offline',
         noTracks: 'Please add tracks first!',
-        youtubeNeedsInternet: '⚠️ This feature requires internet\n\nTo download videos from YouTube, you need an internet connection.\n\nPlease connect to WiFi or mobile data.',
 
         // Status messages
         addingTracks: 'Adding tracks...',
@@ -113,26 +89,7 @@ const translations = {
         keepVideoDesc: 'Full video file with visuals',
         audioOnly: 'Audio Only',
         audioOnlyDesc: 'Smaller size, audio only',
-        formatNote: '💡 Video: watch music videos\n🎧 Audio: save space (~80% smaller)',
-
-        // YouTube modal
-        youtubeTitle: '🔗 Download from YouTube',
-        youtubeOnlineBanner: 'Internet connection required',
-        youtubePlaceholder: 'Paste YouTube URL',
-        youtubeExample: 'Example: https://www.youtube.com/watch?v=...',
-        youtubeFormat: 'Format:',
-        youtubeVideo: '🎬 Video (MP4)',
-        youtubeAudio: '🎵 Audio Only (MP3)',
-        youtubeDownload: '📥 Download',
-        youtubeHow: '💡 How it works:',
-        youtubeStep1: '1. A trusted download website will open',
-        youtubeStep2: '2. Download the file there and add to player',
-        youtubeSafe: 'Safe and no backend required!',
-        youtubeWarningTitle: '⚠️ Important:',
-        youtubeWarning1: '• Requires internet',
-        youtubeWarning2: '• Public videos only',
-        youtubeWarning3: '• Respect copyright laws',
-        youtubeWarning4: '• Third-party service, not ours'
+        formatNote: '💡 Video: watch music videos\n🎧 Audio: save space (~80% smaller)'
     }
 };
 
@@ -397,7 +354,7 @@ class MusicPlayer {
         this.songList = document.getElementById('songList');
         this.fileInput = document.getElementById('fileInput');
         this.addTracksBtn = document.getElementById('addTracksBtn');
-        this.addYoutubeBtn = document.getElementById('addYoutubeBtn');
+        // YouTube button removed
         this.clearAllBtn = document.getElementById('clearAllBtn');
         this.currentSongTitle = document.getElementById('currentSongTitle');
         this.currentSongArtist = document.getElementById('currentSongArtist');
@@ -420,7 +377,7 @@ class MusicPlayer {
         this.progressBar.addEventListener('input', (e) => this.seek(e.target.value));
         this.volumeBar.addEventListener('input', (e) => this.setVolume(e.target.value));
         this.addTracksBtn.addEventListener('click', () => this.handleAddTracksClick());
-        this.addYoutubeBtn.addEventListener('click', () => this.openYoutubeModal());
+        // YouTube modal removed
         this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
         this.clearAllBtn.addEventListener('click', () => this.clearAllSongs());
         this.searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
@@ -485,18 +442,7 @@ class MusicPlayer {
         this.statusText.textContent = isOnline ? t('statusOnline') : t('statusOffline');
 
         // Disable/enable YouTube button based on connection
-        if (this.addYoutubeBtn) {
-            const youtubeBtnText = document.getElementById('youtubeBtnText');
-            if (isOnline) {
-                this.addYoutubeBtn.disabled = false;
-                this.addYoutubeBtn.classList.remove('disabled');
-                if (youtubeBtnText) youtubeBtnText.textContent = t('youtube');
-            } else {
-                this.addYoutubeBtn.disabled = true;
-                this.addYoutubeBtn.classList.add('disabled');
-                if (youtubeBtnText) youtubeBtnText.textContent = t('youtubeOffline');
-            }
-        }
+        // YouTube button removed
     }
 
     handleAddTracksClick() {
@@ -511,20 +457,7 @@ class MusicPlayer {
         }
     }
 
-    openYoutubeModal() {
-        // Check if online
-        if (!navigator.onLine) {
-            alert('⚠️ Эта функция требует интернет / This feature requires internet\n\n' +
-                  'Для загрузки видео с YouTube необходимо подключение к интернету.\n' +
-                  'To download videos from YouTube, you need an internet connection.\n\n' +
-                  'Пожалуйста, подключитесь к WiFi или мобильным данным.\n' +
-                  'Please connect to WiFi or mobile data.');
-            return;
-        }
-
-        const modal = document.getElementById('youtubeModal');
-        modal.classList.add('show');
-    }
+    // YouTube modal removed
 
     handleSearch(query) {
         const searchTerm = query.toLowerCase().trim();
@@ -1073,167 +1006,7 @@ function initFormatModal() {
     });
 }
 
-// YouTube Modal functionality
-function initYoutubeModal() {
-    const modal = document.getElementById('youtubeModal');
-    const closeBtn = document.getElementById('youtubeModalClose');
-    const downloadBtn = document.getElementById('downloadYoutubeBtn');
-    const urlInput = document.getElementById('youtubeUrl');
-    const progressDiv = document.getElementById('youtubeProgress');
-    const progressBar = document.getElementById('youtubeProgressBar');
-
-    // Close modal when X button is clicked
-    closeBtn.addEventListener('click', () => {
-        modal.classList.remove('show');
-        urlInput.value = '';
-        progressDiv.style.display = 'none';
-    });
-
-    // Download from YouTube - Direct download using Cobalt API
-    downloadBtn.addEventListener('click', async () => {
-        const url = urlInput.value.trim();
-        if (!url) {
-            alert(currentLang === 'ru'
-                ? 'Пожалуйста, вставьте ссылку YouTube'
-                : 'Please paste a YouTube URL');
-            return;
-        }
-
-        if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
-            alert(currentLang === 'ru' ? 'Неверный URL YouTube' : 'Invalid YouTube URL');
-            return;
-        }
-
-        const format = document.querySelector('input[name="ytFormat"]:checked').value;
-        const quality = document.getElementById('ytQuality').value;
-
-        // Show progress
-        progressDiv.style.display = 'block';
-        downloadBtn.disabled = true;
-
-        const btnSpan = downloadBtn.querySelector('span');
-        const originalText = btnSpan ? btnSpan.textContent : downloadBtn.textContent;
-
-        if (btnSpan) {
-            btnSpan.textContent = currentLang === 'ru' ? '⏳ Загрузка...' : '⏳ Downloading...';
-        } else {
-            downloadBtn.textContent = currentLang === 'ru' ? '⏳ Загрузка...' : '⏳ Downloading...';
-        }
-
-        try {
-            const result = await downloadYoutubeVideo(url, format, quality, (progress) => {
-                progressBar.style.width = progress + '%';
-            });
-
-            // Success - external site opened
-            modal.classList.remove('show');
-            urlInput.value = '';
-            progressDiv.style.display = 'none';
-            downloadBtn.disabled = false;
-
-            // Reset button text
-            if (btnSpan) {
-                btnSpan.textContent = currentLang === 'ru' ? '📥 Скачать' : '📥 Download';
-            } else {
-                downloadBtn.textContent = currentLang === 'ru' ? '📥 Скачать' : '📥 Download';
-            }
-
-            // Show instruction message
-            window.player.statusText.textContent = currentLang === 'ru'
-                ? '📥 Скачайте файл на сайте и добавьте его в плеер'
-                : '📥 Download the file from the site and add it to the player';
-
-            setTimeout(() => {
-                window.player.updateOnlineStatus(navigator.onLine);
-            }, 5000);
-
-        } catch (error) {
-            console.error('YouTube download error:', error);
-            alert(currentLang === 'ru'
-                ? `Ошибка: ${error.message}`
-                : `Error: ${error.message}`);
-
-            progressDiv.style.display = 'none';
-            downloadBtn.disabled = false;
-
-            // Reset button text
-            if (btnSpan) {
-                btnSpan.textContent = currentLang === 'ru' ? '📥 Скачать' : '📥 Download';
-            } else {
-                downloadBtn.textContent = currentLang === 'ru' ? '📥 Скачать' : '📥 Download';
-            }
-        }
-    });
-
-    // Close modal when clicking outside of modal content
-    window.addEventListener('click', (event) => {
-        if (event.target === modal) {
-            modal.classList.remove('show');
-            urlInput.value = '';
-            progressDiv.style.display = 'none';
-        }
-    });
-}
-
-// YouTube download function - Opens external site (CORS prevents direct API access)
-async function downloadYoutubeVideo(url, format, quality, progressCallback) {
-    console.log('=== YouTube Download Started ===');
-    console.log('URL:', url);
-    console.log('Format:', format);
-    console.log('Quality:', quality);
-
-    progressCallback(20);
-
-    // Inform user about the process
-    const message = currentLang === 'ru'
-        ? `📥 Открытие сайта загрузки...\n\n✅ Что делать:\n1. Сейчас откроется сайт для загрузки\n2. Нажмите кнопку "Download" на сайте\n3. Скачайте файл на устройство\n4. Добавьте файл в плеер кнопкой "📁 Добавить треки"\n\n💡 Примечание: Из-за ограничений браузера (CORS) прямая загрузка невозможна, поэтому используется внешний сайт.`
-        : `📥 Opening download site...\n\n✅ What to do:\n1. A download site will open now\n2. Click the "Download" button on the site\n3. Download the file to your device\n4. Add the file to the player using "📁 Add Tracks"\n\n💡 Note: Due to browser restrictions (CORS), direct download is not possible, so we use an external site.`;
-
-    alert(message);
-
-    progressCallback(50);
-
-    // Use different sites based on format
-    const downloadSites = {
-        audio: [
-            `https://cobalt.tools/?u=${encodeURIComponent(url)}`,
-            `https://en.savefrom.net/#url=${encodeURIComponent(url)}`,
-            `https://ytmp3.nu/xk90/?url=${encodeURIComponent(url)}`
-        ],
-        video: [
-            `https://cobalt.tools/?u=${encodeURIComponent(url)}`,
-            `https://en.savefrom.net/#url=${encodeURIComponent(url)}`,
-            `https://ytmp3.nu/S8Vp/?url=${encodeURIComponent(url)}`
-        ]
-    };
-
-    const siteUrl = downloadSites[format][0];
-
-    console.log('Opening external site:', siteUrl);
-    progressCallback(80);
-
-    // Open in new tab
-    const newWindow = window.open(siteUrl, '_blank');
-
-    if (!newWindow) {
-        throw new Error(currentLang === 'ru'
-            ? 'Не удалось открыть сайт. Разрешите всплывающие окна для этого сайта.'
-            : 'Failed to open site. Please allow pop-ups for this site.');
-    }
-
-    progressCallback(100);
-    console.log('External site opened successfully');
-
-    // Return success (user will manually add the file)
-    return { success: true, method: 'external' };
-}
-
-// Helper function to extract YouTube video ID
-function extractYouTubeVideoId(url) {
-    const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[7].length === 11) ? match[7] : null;
-}
+// YouTube feature removed
 
 // Language toggle initialization
 function initLanguageToggle() {
@@ -1255,5 +1028,5 @@ document.addEventListener('DOMContentLoaded', () => {
     initLanguageToggle();
     initHelpModal();
     initFormatModal();
-    initYoutubeModal();
+    // YouTube modal removed
 });
