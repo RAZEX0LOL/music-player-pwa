@@ -677,6 +677,7 @@ header h1 {
 
 /* Video display styling - Optimized for performance */
 .video-display {
+    display: none; /* Hidden by default */
     width: 100%;
     max-width: 400px;
     border-radius: 15px;
