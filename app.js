@@ -151,7 +151,14 @@ function switchLanguage(lang) {
 function updateUILanguage() {
     // Update all elements with data-lang attributes
     document.querySelectorAll('[data-lang-ru]').forEach(el => {
-        el.textContent = el.getAttribute(`data-lang-${currentLang}`);
+        const newText = el.getAttribute(`data-lang-${currentLang}`);
+
+        // Handle input placeholders
+        if (el.tagName === 'INPUT' && el.hasAttribute('placeholder')) {
+            el.placeholder = newText;
+        } else {
+            el.textContent = newText;
+        }
     });
 
     // Update language toggle button
@@ -160,9 +167,9 @@ function updateUILanguage() {
         langText.textContent = currentLang === 'ru' ? 'EN' : 'RU';
     }
 
-    // Trigger UI update if player exists
+    // Update YouTube button status text based on online/offline
     if (window.player) {
-        window.player.updateLanguage();
+        window.player.updateOnlineStatus(navigator.onLine);
     }
 }
 
@@ -475,7 +482,7 @@ class MusicPlayer {
 
     updateOnlineStatus(isOnline) {
         this.statusIndicator.className = isOnline ? 'online' : 'offline';
-        this.statusText.textContent = isOnline ? 'Онлайн' : 'Офлайн - Работает без интернета!';
+        this.statusText.textContent = isOnline ? t('statusOnline') : t('statusOffline');
 
         // Disable/enable YouTube button based on connection
         if (this.addYoutubeBtn) {
@@ -483,13 +490,11 @@ class MusicPlayer {
             if (isOnline) {
                 this.addYoutubeBtn.disabled = false;
                 this.addYoutubeBtn.classList.remove('disabled');
-                this.addYoutubeBtn.title = 'Скачать с YouTube / Download from YouTube';
-                if (youtubeBtnText) youtubeBtnText.textContent = '🔗 YouTube';
+                if (youtubeBtnText) youtubeBtnText.textContent = t('youtube');
             } else {
                 this.addYoutubeBtn.disabled = true;
                 this.addYoutubeBtn.classList.add('disabled');
-                this.addYoutubeBtn.title = '⚠️ Требуется интернет / Requires internet';
-                if (youtubeBtnText) youtubeBtnText.textContent = '⚠️ Офлайн';
+                if (youtubeBtnText) youtubeBtnText.textContent = t('youtubeOffline');
             }
         }
     }
@@ -1044,15 +1049,19 @@ function initFormatModal() {
     // Keep as video - add files with video
     keepVideoBtn.addEventListener('click', async () => {
         modal.classList.remove('show');
-        await window.player.addFilesToLibrary(window.player.pendingFiles, false);
-        window.player.pendingFiles = [];
+        if (window.player && window.player.pendingFiles.length > 0) {
+            await window.player.addFilesToLibrary(window.player.pendingFiles, false);
+            window.player.pendingFiles = [];
+        }
     });
 
     // Audio only - extract audio
     audioOnlyBtn.addEventListener('click', async () => {
         modal.classList.remove('show');
-        await window.player.addFilesToLibrary(window.player.pendingFiles, true);
-        window.player.pendingFiles = [];
+        if (window.player && window.player.pendingFiles.length > 0) {
+            await window.player.addFilesToLibrary(window.player.pendingFiles, true);
+            window.player.pendingFiles = [];
+        }
     });
 
     // Close modal when clicking outside of modal content
