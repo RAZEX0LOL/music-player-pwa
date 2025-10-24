@@ -386,20 +386,16 @@ class MusicPlayer {
         this.audio.addEventListener('loadedmetadata', () => this.updateDuration());
         this.audio.addEventListener('ended', () => this.playNext());
 
-        // Sync video element with audio element
-        this.audio.addEventListener('play', () => {
+        // Video element event listeners
+        this.videoDisplay.addEventListener('ended', () => this.playNext());
+        this.videoDisplay.addEventListener('loadedmetadata', () => {
             if (this.videoDisplay.src) {
-                this.videoDisplay.play().catch(e => console.log('Video play error:', e));
+                this.updateDuration();
             }
         });
-        this.audio.addEventListener('pause', () => {
+        this.videoDisplay.addEventListener('timeupdate', () => {
             if (this.videoDisplay.src) {
-                this.videoDisplay.pause();
-            }
-        });
-        this.audio.addEventListener('timeupdate', () => {
-            if (this.videoDisplay.src && Math.abs(this.videoDisplay.currentTime - this.audio.currentTime) > 0.5) {
-                this.videoDisplay.currentTime = this.audio.currentTime;
+                this.updateProgress();
             }
         });
 
@@ -458,6 +454,11 @@ class MusicPlayer {
     }
 
     // YouTube modal removed
+
+    // Helper method to get the active media element (video or audio)
+    getActiveMediaElement() {
+        return this.videoDisplay.src ? this.videoDisplay : this.audio;
+    }
 
     handleSearch(query) {
         const searchTerm = query.toLowerCase().trim();
@@ -678,28 +679,42 @@ class MusicPlayer {
                           song.name.match(/\.(mp4|m4v|webm|mpeg)$/i);
 
             if (isVideo) {
-                // Show video display and hide vinyl
+                // For video files: use video element for both visual and audio
                 this.videoDisplay.src = url;
                 this.videoDisplay.classList.add('show');
                 this.vinylDisc.style.display = 'none';
+
+                // Don't load audio element for video files
+                this.audio.src = '';
+                this.audio.pause();
+
+                // Load and play video
                 this.videoDisplay.load();
+
+                try {
+                    await this.videoDisplay.play();
+                    this.isPlaying = true;
+                } catch (playError) {
+                    console.error('Video playback error:', playError);
+                    this.isPlaying = false;
+                }
             } else {
-                // Hide video display and show vinyl
+                // For audio files: use audio element and show vinyl
                 this.videoDisplay.src = '';
+                this.videoDisplay.pause();
                 this.videoDisplay.classList.remove('show');
                 this.vinylDisc.style.display = 'flex';
-            }
 
-            this.audio.src = url;
-            this.audio.load(); // Ensure video/audio element loads the source
+                this.audio.src = url;
+                this.audio.load();
 
-            try {
-                await this.audio.play();
-                this.isPlaying = true;
-            } catch (playError) {
-                console.error('Playback error:', playError);
-                // Try to play again (sometimes first attempt fails on mobile)
-                this.isPlaying = false;
+                try {
+                    await this.audio.play();
+                    this.isPlaying = true;
+                } catch (playError) {
+                    console.error('Audio playback error:', playError);
+                    this.isPlaying = false;
+                }
             }
 
             this.updatePlayButton();
@@ -720,16 +735,18 @@ class MusicPlayer {
             return;
         }
 
-        if (this.audio.src === '') {
+        const media = this.getActiveMediaElement();
+
+        if (media.src === '') {
             await this.playSongAtIndex(0);
             return;
         }
 
         if (this.isPlaying) {
-            this.audio.pause();
+            media.pause();
             this.vinylDisc.classList.remove('spinning');
         } else {
-            await this.audio.play();
+            await media.play();
             this.vinylDisc.classList.add('spinning');
         }
 
@@ -760,29 +777,34 @@ class MusicPlayer {
     }
 
     updateProgress() {
-        if (this.audio.duration) {
-            const progress = (this.audio.currentTime / this.audio.duration) * 100;
+        const media = this.getActiveMediaElement();
+        if (media.duration) {
+            const progress = (media.currentTime / media.duration) * 100;
             this.progressBar.value = progress;
-            this.currentTimeEl.textContent = this.formatTime(this.audio.currentTime);
+            this.currentTimeEl.textContent = this.formatTime(media.currentTime);
         }
     }
 
     updateDuration() {
-        if (this.audio.duration) {
-            this.durationEl.textContent = this.formatTime(this.audio.duration);
+        const media = this.getActiveMediaElement();
+        if (media.duration) {
+            this.durationEl.textContent = this.formatTime(media.duration);
             this.updateMediaSessionPositionState();
         }
     }
 
     seek(value) {
-        if (this.audio.duration) {
-            const time = (value / 100) * this.audio.duration;
-            this.audio.currentTime = time;
+        const media = this.getActiveMediaElement();
+        if (media.duration) {
+            const time = (value / 100) * media.duration;
+            media.currentTime = time;
         }
     }
 
     setVolume(value) {
-        this.audio.volume = value / 100;
+        const volume = value / 100;
+        this.audio.volume = volume;
+        this.videoDisplay.volume = volume;
     }
 
     updateSongCount() {
