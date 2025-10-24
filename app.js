@@ -1196,14 +1196,14 @@ async function downloadYoutubeVideo(url, format, quality, progressCallback) {
     // Use different sites based on format
     const downloadSites = {
         audio: [
-            `https://yt5s.io/en/youtube-to-mp3?q=${encodeURIComponent(url)}`,
+            `https://loader.to/api/button/?url=${encodeURIComponent(url)}&f=mp3`,
             `https://ytmp3.nu/xk90/?url=${encodeURIComponent(url)}`,
-            `https://y2mate.nu/en/youtube-to-mp3?q=${encodeURIComponent(url)}`
+            `https://en.savefrom.net/#url=${encodeURIComponent(url)}`
         ],
         video: [
-            `https://yt5s.io/en/youtube-to-mp4?q=${encodeURIComponent(url)}`,
+            `https://loader.to/api/button/?url=${encodeURIComponent(url)}&f=720`,
             `https://ytmp3.nu/S8Vp/?url=${encodeURIComponent(url)}`,
-            `https://y2mate.nu/en/youtube-to-mp4?q=${encodeURIComponent(url)}`
+            `https://en.savefrom.net/#url=${encodeURIComponent(url)}`
         ]
     };
 
