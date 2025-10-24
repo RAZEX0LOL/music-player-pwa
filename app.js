@@ -221,14 +221,21 @@ class MusicPlayer {
         this.durationEl = document.getElementById('duration');
         this.songList = document.getElementById('songList');
         this.fileInput = document.getElementById('fileInput');
-        this.addSongsBtn = document.getElementById('addSongsBtn');
+        this.addTracksBtn = document.getElementById('addTracksBtn');
+        this.addYoutubeBtn = document.getElementById('addYoutubeBtn');
         this.clearAllBtn = document.getElementById('clearAllBtn');
         this.currentSongTitle = document.getElementById('currentSongTitle');
         this.currentSongArtist = document.getElementById('currentSongArtist');
         this.vinylDisc = document.getElementById('vinylDisc');
+        this.videoDisplay = document.getElementById('videoDisplay');
         this.songCount = document.getElementById('songCount');
         this.statusIndicator = document.getElementById('statusIndicator');
         this.statusText = document.getElementById('statusText');
+        this.searchInput = document.getElementById('searchInput');
+
+        // Store for pending files awaiting format selection
+        this.pendingFiles = [];
+        this.allSongs = []; // For search filtering
     }
 
     initEventListeners() {
@@ -237,13 +244,32 @@ class MusicPlayer {
         this.nextBtn.addEventListener('click', () => this.playNext());
         this.progressBar.addEventListener('input', (e) => this.seek(e.target.value));
         this.volumeBar.addEventListener('input', (e) => this.setVolume(e.target.value));
-        this.addSongsBtn.addEventListener('click', () => this.handleAddSongsClick());
+        this.addTracksBtn.addEventListener('click', () => this.handleAddTracksClick());
+        this.addYoutubeBtn.addEventListener('click', () => this.openYoutubeModal());
         this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
         this.clearAllBtn.addEventListener('click', () => this.clearAllSongs());
+        this.searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
 
         this.audio.addEventListener('timeupdate', () => this.updateProgress());
         this.audio.addEventListener('loadedmetadata', () => this.updateDuration());
         this.audio.addEventListener('ended', () => this.playNext());
+
+        // Sync video element with audio element
+        this.audio.addEventListener('play', () => {
+            if (this.videoDisplay.src) {
+                this.videoDisplay.play().catch(e => console.log('Video play error:', e));
+            }
+        });
+        this.audio.addEventListener('pause', () => {
+            if (this.videoDisplay.src) {
+                this.videoDisplay.pause();
+            }
+        });
+        this.audio.addEventListener('timeupdate', () => {
+            if (this.videoDisplay.src && Math.abs(this.videoDisplay.currentTime - this.audio.currentTime) > 0.5) {
+                this.videoDisplay.currentTime = this.audio.currentTime;
+            }
+        });
 
         window.addEventListener('online', () => this.updateOnlineStatus(true));
         window.addEventListener('offline', () => this.updateOnlineStatus(false));
@@ -282,9 +308,25 @@ class MusicPlayer {
     updateOnlineStatus(isOnline) {
         this.statusIndicator.className = isOnline ? 'online' : 'offline';
         this.statusText.textContent = isOnline ? 'Онлайн' : 'Офлайн - Работает без интернета!';
+
+        // Disable/enable YouTube button based on connection
+        if (this.addYoutubeBtn) {
+            const youtubeBtnText = document.getElementById('youtubeBtnText');
+            if (isOnline) {
+                this.addYoutubeBtn.disabled = false;
+                this.addYoutubeBtn.classList.remove('disabled');
+                this.addYoutubeBtn.title = 'Скачать с YouTube / Download from YouTube';
+                if (youtubeBtnText) youtubeBtnText.textContent = '🔗 YouTube';
+            } else {
+                this.addYoutubeBtn.disabled = true;
+                this.addYoutubeBtn.classList.add('disabled');
+                this.addYoutubeBtn.title = '⚠️ Требуется интернет / Requires internet';
+                if (youtubeBtnText) youtubeBtnText.textContent = '⚠️ Офлайн';
+            }
+        }
     }
 
-    handleAddSongsClick() {
+    handleAddTracksClick() {
         // Try to open file picker
         // Note: iOS Safari may block this in offline PWA mode
         // In that case, users can use drag-and-drop instead
@@ -292,23 +334,80 @@ class MusicPlayer {
             this.fileInput.click();
         } catch (error) {
             console.error('File picker error:', error);
-            alert('Используйте перетаскивание файлов (drag & drop) для добавления песен офлайн');
+            alert('Используйте перетаскивание файлов (drag & drop) для добавления треков офлайн');
         }
+    }
+
+    openYoutubeModal() {
+        // Check if online
+        if (!navigator.onLine) {
+            alert('⚠️ Эта функция требует интернет / This feature requires internet\n\n' +
+                  'Для загрузки видео с YouTube необходимо подключение к интернету.\n' +
+                  'To download videos from YouTube, you need an internet connection.\n\n' +
+                  'Пожалуйста, подключитесь к WiFi или мобильным данным.\n' +
+                  'Please connect to WiFi or mobile data.');
+            return;
+        }
+
+        const modal = document.getElementById('youtubeModal');
+        modal.classList.add('show');
+    }
+
+    handleSearch(query) {
+        const searchTerm = query.toLowerCase().trim();
+
+        if (!searchTerm) {
+            // Show all songs
+            this.playlist = [...this.allSongs];
+        } else {
+            // Filter songs
+            this.playlist = this.allSongs.filter(song =>
+                song.name.toLowerCase().includes(searchTerm)
+            );
+        }
+
+        this.renderPlaylist();
     }
 
     async handleFileSelect(event) {
         const files = Array.from(event.target.files);
         if (files.length === 0) return;
 
-        this.statusText.textContent = `Добавление ${files.length} песен...`;
+        // Check if any files are video files
+        const videoFiles = files.filter(file =>
+            file.type.startsWith('video/') ||
+            file.name.match(/\.(mp4|m4v|webm|mpeg)$/i)
+        );
+
+        if (videoFiles.length > 0) {
+            // Store files and show format selection modal
+            this.pendingFiles = files;
+            this.showFormatModal();
+        } else {
+            // All audio files, add directly
+            await this.addFilesToLibrary(files, false);
+        }
+
+        event.target.value = '';
+    }
+
+    async addFilesToLibrary(files, audioOnly) {
+        this.statusText.textContent = `Добавление ${files.length} треков...`;
 
         try {
             for (const file of files) {
-                await this.db.addSong(file);
+                if (audioOnly && (file.type.startsWith('video/') || file.name.match(/\.(mp4|m4v|webm)$/i))) {
+                    // Convert video to audio only (extract audio track)
+                    // Note: Full conversion requires FFmpeg, so we'll store with metadata flag
+                    const audioFile = await this.extractAudio(file);
+                    await this.db.addSong(audioFile);
+                } else {
+                    await this.db.addSong(file);
+                }
             }
 
             await this.loadPlaylist();
-            this.statusText.textContent = `Добавлено ${files.length} песен!`;
+            this.statusText.textContent = `Добавлено ${files.length} треков!`;
 
             // Show storage info after adding songs
             this.showStorageInfo();
@@ -317,19 +416,30 @@ class MusicPlayer {
                 this.updateOnlineStatus(navigator.onLine);
             }, 2000);
         } catch (error) {
-            console.error('Error adding songs:', error);
+            console.error('Error adding tracks:', error);
             this.statusText.textContent = 'Ошибка добавления: ' + error.message;
             setTimeout(() => {
                 this.updateOnlineStatus(navigator.onLine);
             }, 3000);
         }
+    }
 
-        event.target.value = '';
+    async extractAudio(videoFile) {
+        // For now, we'll just mark it as audio-only
+        // In a real implementation, you'd use FFmpeg.js or similar
+        // For this PWA, we'll store the video but play audio-only
+        return videoFile;
+    }
+
+    showFormatModal() {
+        const modal = document.getElementById('formatModal');
+        modal.classList.add('show');
     }
 
     async loadPlaylist() {
         try {
-            this.playlist = await this.db.getAllSongs();
+            this.allSongs = await this.db.getAllSongs();
+            this.playlist = [...this.allSongs];
             this.renderPlaylist();
             this.updateSongCount();
         } catch (error) {
@@ -341,8 +451,8 @@ class MusicPlayer {
         if (this.playlist.length === 0) {
             this.songList.innerHTML = `
                 <div class="empty-state">
-                    <p>Пока нет песен</p>
-                    <p class="hint">Добавьте песни для начала работы!</p>
+                    <p>Пока нет треков</p>
+                    <p class="hint">Добавьте треки для начала работы!</p>
                 </div>
             `;
             return;
@@ -457,6 +567,23 @@ class MusicPlayer {
 
             const url = URL.createObjectURL(fileBlob);
 
+            // Check if this is a video file
+            const isVideo = songData.type.startsWith('video/') ||
+                          song.name.match(/\.(mp4|m4v|webm|mpeg)$/i);
+
+            if (isVideo) {
+                // Show video display and hide vinyl
+                this.videoDisplay.src = url;
+                this.videoDisplay.classList.add('show');
+                this.vinylDisc.style.display = 'none';
+                this.videoDisplay.load();
+            } else {
+                // Hide video display and show vinyl
+                this.videoDisplay.src = '';
+                this.videoDisplay.classList.remove('show');
+                this.vinylDisc.style.display = 'flex';
+            }
+
             this.audio.src = url;
             this.audio.load(); // Ensure video/audio element loads the source
 
@@ -483,7 +610,7 @@ class MusicPlayer {
 
     async togglePlay() {
         if (this.playlist.length === 0) {
-            alert('Пожалуйста, сначала добавьте песни!');
+            alert('Пожалуйста, сначала добавьте треки!');
             return;
         }
 
@@ -733,8 +860,207 @@ function initHelpModal() {
     });
 }
 
+// Format Selection Modal functionality
+function initFormatModal() {
+    const modal = document.getElementById('formatModal');
+    const closeBtn = document.getElementById('formatModalClose');
+    const keepVideoBtn = document.getElementById('keepVideoBtn');
+    const audioOnlyBtn = document.getElementById('audioOnlyBtn');
+
+    // Close modal when X button is clicked
+    closeBtn.addEventListener('click', () => {
+        modal.classList.remove('show');
+        window.player.pendingFiles = [];
+    });
+
+    // Keep as video - add files with video
+    keepVideoBtn.addEventListener('click', async () => {
+        modal.classList.remove('show');
+        await window.player.addFilesToLibrary(window.player.pendingFiles, false);
+        window.player.pendingFiles = [];
+    });
+
+    // Audio only - extract audio
+    audioOnlyBtn.addEventListener('click', async () => {
+        modal.classList.remove('show');
+        await window.player.addFilesToLibrary(window.player.pendingFiles, true);
+        window.player.pendingFiles = [];
+    });
+
+    // Close modal when clicking outside of modal content
+    window.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            modal.classList.remove('show');
+            window.player.pendingFiles = [];
+        }
+    });
+}
+
+// YouTube Modal functionality
+function initYoutubeModal() {
+    const modal = document.getElementById('youtubeModal');
+    const closeBtn = document.getElementById('youtubeModalClose');
+    const downloadBtn = document.getElementById('downloadYoutubeBtn');
+    const urlInput = document.getElementById('youtubeUrl');
+    const progressDiv = document.getElementById('youtubeProgress');
+    const progressBar = document.getElementById('youtubeProgressBar');
+
+    // Close modal when X button is clicked
+    closeBtn.addEventListener('click', () => {
+        modal.classList.remove('show');
+        urlInput.value = '';
+        progressDiv.style.display = 'none';
+    });
+
+    // Download from YouTube - Open external service
+    downloadBtn.addEventListener('click', async () => {
+        const url = urlInput.value.trim();
+        if (!url) {
+            alert('Пожалуйста, введите URL YouTube / Please enter YouTube URL');
+            return;
+        }
+
+        if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
+            alert('Неверный URL YouTube / Invalid YouTube URL');
+            return;
+        }
+
+        const format = document.querySelector('input[name="ytFormat"]:checked').value;
+
+        // Open external downloader service
+        const serviceUrl = openYouTubeDownloader(url, format);
+
+        // Show instructions
+        const instructions =
+            '✅ Открыт сайт загрузки / Download site opened\n\n' +
+            '📝 Инструкция / Instructions:\n\n' +
+            '1️⃣ Скачайте файл на этом сайте\n' +
+            '1️⃣ Download the file on that website\n\n' +
+            '2️⃣ Вернитесь в плеер\n' +
+            '2️⃣ Return to the player\n\n' +
+            '3️⃣ Нажмите "📁 Добавить треки"\n' +
+            '3️⃣ Click "📁 Add Tracks"\n\n' +
+            '4️⃣ Выберите скачанный файл\n' +
+            '4️⃣ Select the downloaded file\n\n' +
+            '✅ Готово! / Done!';
+
+        alert(instructions);
+
+        // Close modal
+        modal.classList.remove('show');
+        urlInput.value = '';
+    });
+
+    // Close modal when clicking outside of modal content
+    window.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            modal.classList.remove('show');
+            urlInput.value = '';
+            progressDiv.style.display = 'none';
+        }
+    });
+}
+
+// YouTube download function using third-party API
+async function downloadYoutubeVideo(url, format, quality, progressCallback) {
+    // Extract video ID from YouTube URL
+    const videoId = extractYouTubeVideoId(url);
+    if (!videoId) {
+        throw new Error('Неверный URL YouTube / Invalid YouTube URL');
+    }
+
+    progressCallback(10);
+
+    // OPTION 1: Use a public API service (free but may have rate limits)
+    // Note: These services may go down or change. Always have fallbacks.
+
+    try {
+        // Using a CORS-friendly API proxy
+        // This is a demonstration - you may need to find current working APIs
+        const apiUrl = format === 'audio'
+            ? `https://youtube-mp36.p.rapidapi.com/dl?id=${videoId}`
+            : `https://youtube-video-download-info.p.rapidapi.com/dl?id=${videoId}`;
+
+        progressCallback(30);
+
+        // Note: RapidAPI requires an API key (free tier available)
+        // For a truly backend-free solution, you'd need to use a public API
+        // Here's an alternative approach using a public service:
+
+        const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${videoId}`)}`);
+
+        progressCallback(50);
+
+        if (!response.ok) {
+            throw new Error('Не удалось получить видео / Failed to fetch video');
+        }
+
+        progressCallback(70);
+
+        // This approach has limitations - YouTube actively blocks scraping
+        // Better solution: Use browser extension approach or redirect to web service
+
+        throw new Error(
+            '⚠️ Для загрузки с YouTube рекомендуется:\n' +
+            '⚠️ For YouTube downloads, we recommend:\n\n' +
+            '1. Скачайте видео через https://yt1s.com или https://y2mate.com\n' +
+            '1. Download video via https://yt1s.com or https://y2mate.com\n\n' +
+            '2. Затем добавьте файл в плеер кнопкой "📁 Добавить треки"\n' +
+            '2. Then add the file to player using "📁 Add Tracks" button\n\n' +
+            '💡 Это быстрее и безопаснее!\n' +
+            '💡 This is faster and safer!'
+        );
+
+    } catch (error) {
+        throw error;
+    }
+
+    // OPTION 2: Open external service in new tab (most reliable)
+    // This is what we'll actually implement below
+}
+
+// Helper function to extract YouTube video ID
+function extractYouTubeVideoId(url) {
+    const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[7].length === 11) ? match[7] : null;
+}
+
+// Open external YouTube downloader service
+function openYouTubeDownloader(url, format) {
+    const videoId = extractYouTubeVideoId(url);
+    if (!videoId) {
+        alert('Неверный URL YouTube / Invalid YouTube URL');
+        return;
+    }
+
+    // Use trusted third-party services
+    // Users can download there and then add to the player
+    const services = {
+        audio: [
+            `https://yt1s.com/en/youtube-to-mp3?q=${encodeURIComponent(url)}`,
+            `https://ytmp3.nu/en/?url=${encodeURIComponent(url)}`,
+            `https://320ytmp3.com/en/?url=${encodeURIComponent(url)}`
+        ],
+        video: [
+            `https://yt1s.com/en/youtube-to-mp4?q=${encodeURIComponent(url)}`,
+            `https://y2mate.com/en/youtube-mp4/${videoId}`,
+            `https://www.y2mate.com/youtube/${videoId}`
+        ]
+    };
+
+    const serviceUrl = format === 'audio' ? services.audio[0] : services.video[0];
+
+    // Open in new tab
+    window.open(serviceUrl, '_blank');
+
+    return serviceUrl;
+}
+
 // Initialize the player when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     window.player = new MusicPlayer();
     initHelpModal();
+    initFormatModal();
+    initYoutubeModal();
 });

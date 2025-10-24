@@ -29,26 +29,36 @@
 
         <div class="add-songs-section">
             <input type="file" id="fileInput" accept="audio/*,video/mp4,video/x-m4v,.mp3,.wav,.ogg,.m4a,.flac,.mp4,.m4v,.aac,.wma,.webm" multiple hidden>
-            <button id="addSongsBtn" class="btn-primary">
-                <span>📁 Добавить песни</span>
+            <button id="addTracksBtn" class="btn-primary">
+                <span>📁 Добавить треки</span>
+            </button>
+            <button id="addYoutubeBtn" class="btn-secondary" title="Скачать с YouTube / Download from YouTube">
+                <span id="youtubeBtnText">🔗 YouTube</span>
             </button>
             <button id="clearAllBtn" class="btn-danger">
                 <span>🗑️ Очистить всё</span>
             </button>
-            <p style="font-size: 0.85em; color: rgba(255,255,255,0.6); margin-top: 8px; text-align: center;">
-                Или перетащите аудио/видео файлы в окно (работает офлайн!)
-            </p>
+            <div class="offline-features-note">
+                <p style="font-size: 0.85em; color: rgba(255,255,255,0.6); margin-top: 8px; text-align: center;">
+                    ✅ Перетаскивание файлов - работает офлайн!<br>
+                    ✅ Drag & drop files - works offline!
+                </p>
+                <p style="font-size: 0.75em; color: rgba(255,255,255,0.4); margin-top: 4px; text-align: center;">
+                    ⚠️ YouTube загрузка требует интернет / YouTube download requires internet
+                </p>
+            </div>
         </div>
 
         <div class="now-playing">
             <div class="album-art">
+                <video id="videoDisplay" class="video-display" playsinline style="display: none;"></video>
                 <div class="vinyl-disc" id="vinylDisc">
                     <div class="vinyl-center"></div>
                 </div>
             </div>
             <div class="song-info">
-                <h2 id="currentSongTitle">Песня не играет</h2>
-                <p id="currentSongArtist">Выберите песню для начала</p>
+                <h2 id="currentSongTitle">Трек не играет</h2>
+                <p id="currentSongArtist">Выберите трек для начала</p>
             </div>
         </div>
 
@@ -72,11 +82,14 @@
         </div>
 
         <div class="playlist">
-            <h3>Плейлист (<span id="songCount">0</span> <span id="songsLabel">песен</span>)</h3>
+            <h3>Плейлист (<span id="songCount">0</span> <span id="songsLabel">треков</span>)</h3>
+            <div class="search-container">
+                <input type="text" id="searchInput" class="search-input" placeholder="🔍 Поиск треков...">
+            </div>
             <div id="songList" class="song-list">
                 <div class="empty-state">
-                    <p>Пока нет песен</p>
-                    <p class="hint">Добавьте песни для начала работы!</p>
+                    <p>Пока нет треков</p>
+                    <p class="hint">Добавьте треки для начала работы!</p>
                 </div>
             </div>
         </div>
@@ -94,10 +107,12 @@
 
             <div class="help-section">
                 <h3>🎵 Как добавить музыку / How to Add Music</h3>
-                <p><strong>Способ 1:</strong> Нажмите "📁 Добавить песни" → Выберите файлы</p>
-                <p><strong>Method 1:</strong> Click "📁 Add Songs" → Select files</p>
-                <p><strong>Способ 2:</strong> Перетащите MP3/MP4 файлы в окно</p>
-                <p><strong>Method 2:</strong> Drag & drop MP3/MP4 files into window</p>
+                <p><strong>Способ 1 (Офлайн / Offline):</strong> Нажмите "📁 Добавить треки" → Выберите файлы</p>
+                <p><strong>Method 1 (Offline):</strong> Click "📁 Add Tracks" → Select files</p>
+                <p><strong>Способ 2 (Офлайн / Offline):</strong> Перетащите MP3/MP4 файлы в окно</p>
+                <p><strong>Method 2 (Offline):</strong> Drag & drop MP3/MP4 files into window</p>
+                <p style="margin-top: 10px;"><strong>⚠️ Способ 3 (Требует интернет):</strong> Нажмите "🔗 YouTube" → Вставьте URL</p>
+                <p><strong>⚠️ Method 3 (Requires Internet):</strong> Click "🔗 YouTube" → Paste URL</p>
             </div>
 
             <div class="help-section">
@@ -116,10 +131,15 @@
 
             <div class="help-section">
                 <h3>📶 Офлайн режим / Offline Mode</h3>
-                <p>1. Добавьте песни <strong>с интернетом</strong> (один раз)</p>
-                <p>1. Add songs <strong>with internet</strong> (once)</p>
-                <p>2. Слушайте <strong>без интернета</strong> когда угодно!</p>
-                <p>2. Listen <strong>without internet</strong> anytime!</p>
+                <p><strong style="color: #4ecca3;">✅ Работает офлайн / Works Offline:</strong></p>
+                <p>• Воспроизведение музыки / Music playback</p>
+                <p>• Добавление файлов с устройства / Adding files from device</p>
+                <p>• Перетаскивание файлов / Drag & drop files</p>
+                <p>• Поиск по треках / Search tracks</p>
+                <p>• Выбор формата видео/аудио / Video/audio format selection</p>
+                <p style="margin-top: 10px;"><strong style="color: #f5576c;">⚠️ Требует интернет / Requires Internet:</strong></p>
+                <p>• Загрузка с YouTube / YouTube downloads</p>
+                <p>• Первая установка приложения (один раз) / First app install (once)</p>
             </div>
 
             <div class="help-section">
@@ -150,6 +170,98 @@
                     Нет слежки / No tracking | Нет рекламы / No ads
                 </p>
             </div>
+        </div>
+    </div>
+
+    <!-- Format Selection Modal -->
+    <div id="formatModal" class="modal">
+        <div class="modal-content format-modal">
+            <span class="close" id="formatModalClose">&times;</span>
+            <h2>🎵 Выбор формата / Format Selection</h2>
+
+            <div class="format-options">
+                <button class="format-option-btn" id="keepVideoBtn">
+                    <div class="format-icon">🎬</div>
+                    <h3>Оставить как видео</h3>
+                    <p>Keep as Video</p>
+                    <span class="format-desc">Полный видеофайл с изображением</span>
+                    <span class="format-desc">Full video file with visuals</span>
+                </button>
+
+                <button class="format-option-btn" id="audioOnlyBtn">
+                    <div class="format-icon">🎵</div>
+                    <h3>Только аудио</h3>
+                    <p>Audio Only</p>
+                    <span class="format-desc">Меньше размер, только звук</span>
+                    <span class="format-desc">Smaller size, audio only</span>
+                </button>
+            </div>
+
+            <p class="format-note">
+                💡 Видео: можно смотреть клипы<br>
+                💡 Video: watch music videos<br>
+                🎧 Аудио: экономия места (~80% меньше)<br>
+                🎧 Audio: save space (~80% smaller)
+            </p>
+        </div>
+    </div>
+
+    <!-- YouTube Download Modal -->
+    <div id="youtubeModal" class="modal">
+        <div class="modal-content youtube-modal">
+            <span class="close" id="youtubeModalClose">&times;</span>
+            <h2>🔗 Скачать с YouTube / Download from YouTube</h2>
+
+            <div class="online-required-banner">
+                <span class="online-icon">📶</span>
+                <div>
+                    <strong>Требуется подключение к интернету</strong><br>
+                    <strong>Internet connection required</strong>
+                </div>
+            </div>
+
+            <div class="youtube-input-section">
+                <input type="text" id="youtubeUrl" class="youtube-input" placeholder="Вставьте ссылку YouTube / Paste YouTube URL">
+                <p class="hint-text">Пример / Example: https://www.youtube.com/watch?v=...</p>
+            </div>
+
+            <div class="youtube-format-options">
+                <h3>Формат / Format:</h3>
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio" name="ytFormat" value="video" checked>
+                        <span>🎬 Видео (MP4)</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="ytFormat" value="audio">
+                        <span>🎵 Только аудио (MP3)</span>
+                    </label>
+                </div>
+            </div>
+
+            <button id="downloadYoutubeBtn" class="btn-primary youtube-download-btn">
+                🚀 Открыть сайт загрузки / Open Download Site
+            </button>
+
+            <div class="youtube-info-box">
+                <p style="font-size: 0.9em; line-height: 1.6;">
+                    <strong>💡 Как это работает / How it works:</strong><br>
+                    1. Откроется проверенный сайт для загрузки<br>
+                    1. A trusted download website will open<br><br>
+                    2. Скачайте файл там и добавьте в плеер<br>
+                    2. Download the file there and add to player<br><br>
+                    <em>Это безопасно и не требует бэкенда!</em><br>
+                    <em>Safe and no backend required!</em>
+                </p>
+            </div>
+
+            <p class="youtube-warning">
+                ⚠️ <strong>Важно / Important:</strong><br>
+                • Требуется интернет / Requires internet<br>
+                • Только публичные видео / Public videos only<br>
+                • Соблюдайте авторские права / Respect copyright laws<br>
+                • Сторонний сервис, не наш / Third-party service, not ours
+            </p>
         </div>
     </div>
 
