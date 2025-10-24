@@ -19,12 +19,17 @@
 <body>
     <div class="container">
         <header>
-            <h1>🎵 Моя Музыка</h1>
-            <div class="status">
-                <span id="statusIndicator" class="online">●</span>
-                <span id="statusText">Готов</span>
+            <h1 data-lang-ru="🎵 Моя Музыка" data-lang-en="🎵 My Music">🎵 Моя Музыка</h1>
+            <div class="header-controls">
+                <div class="status">
+                    <span id="statusIndicator" class="online">●</span>
+                    <span id="statusText" data-lang-ru="Готов" data-lang-en="Ready">Готов</span>
+                </div>
+                <button id="langToggle" class="lang-btn" title="Switch Language / Переключить язык">
+                    <span id="langText">EN</span>
+                </button>
+                <button id="helpBtn" class="help-btn" title="Инструкция / Help">❓</button>
             </div>
-            <button id="helpBtn" class="help-btn" title="Инструкция / Help">❓</button>
         </header>
 
         <div class="add-songs-section">

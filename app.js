@@ -1,3 +1,171 @@
+// Language Manager
+const translations = {
+    ru: {
+        // Header
+        appTitle: '🎵 Моя Музыка',
+        statusOnline: 'Онлайн',
+        statusOffline: 'Офлайн - Работает без интернета!',
+        statusReady: 'Готов',
+
+        // Buttons
+        addTracks: '📁 Добавить треки',
+        youtube: '🔗 YouTube',
+        youtubeOffline: '⚠️ Офлайн',
+        clearAll: '🗑️ Очистить всё',
+
+        // Playlist
+        playlistTitle: 'Плейлист',
+        tracks: 'треков',
+        track: 'трек',
+        trackTwo: 'трека',
+        searchPlaceholder: '🔍 Поиск треков...',
+        emptyPlaylist: 'Пока нет треков',
+        emptyHint: 'Добавьте треки для начала работы!',
+
+        // Now Playing
+        noTrack: 'Трек не играет',
+        selectTrack: 'Выберите трек для начала',
+
+        // Drag and drop
+        dragHint: '✅ Перетаскивание файлов - работает офлайн!',
+        youtubeWarning: '⚠️ YouTube загрузка требует интернет',
+
+        // Alerts
+        addTracksOffline: 'Используйте перетаскивание файлов (drag & drop) для добавления треков офлайн',
+        noTracks: 'Пожалуйста, сначала добавьте треки!',
+        youtubeNeedsInternet: '⚠️ Эта функция требует интернет\n\nДля загрузки видео с YouTube необходимо подключение к интернету.\n\nПожалуйста, подключитесь к WiFi или мобильным данным.',
+
+        // Status messages
+        addingTracks: 'Добавление треков...',
+        tracksAdded: 'Добавлено треков!',
+        errorAdding: 'Ошибка добавления:',
+
+        // Format modal
+        formatTitle: '🎵 Выбор формата',
+        keepVideo: 'Оставить как видео',
+        keepVideoDesc: 'Полный видеофайл с изображением',
+        audioOnly: 'Только аудио',
+        audioOnlyDesc: 'Меньше размер, только звук',
+        formatNote: '💡 Видео: можно смотреть клипы\n🎧 Аудио: экономия места (~80% меньше)',
+
+        // YouTube modal
+        youtubeTitle: '🔗 Скачать с YouTube',
+        youtubeOnlineBanner: 'Требуется подключение к интернету',
+        youtubePlaceholder: 'Вставьте ссылку YouTube',
+        youtubeExample: 'Пример: https://www.youtube.com/watch?v=...',
+        youtubeFormat: 'Формат:',
+        youtubeVideo: '🎬 Видео (MP4)',
+        youtubeAudio: '🎵 Только аудио (MP3)',
+        youtubeButton: '🚀 Открыть сайт загрузки',
+        youtubeHow: '💡 Как это работает:',
+        youtubeStep1: '1. Откроется проверенный сайт для загрузки',
+        youtubeStep2: '2. Скачайте файл там и добавьте в плеер',
+        youtubeSafe: 'Это безопасно и не требует бэкенда!',
+        youtubeWarningTitle: '⚠️ Важно:',
+        youtubeWarning1: '• Требуется интернет',
+        youtubeWarning2: '• Только публичные видео',
+        youtubeWarning3: '• Соблюдайте авторские права',
+        youtubeWarning4: '• Сторонний сервис, не наш'
+    },
+    en: {
+        // Header
+        appTitle: '🎵 My Music',
+        statusOnline: 'Online',
+        statusOffline: 'Offline - Works without internet!',
+        statusReady: 'Ready',
+
+        // Buttons
+        addTracks: '📁 Add Tracks',
+        youtube: '🔗 YouTube',
+        youtubeOffline: '⚠️ Offline',
+        clearAll: '🗑️ Clear All',
+
+        // Playlist
+        playlistTitle: 'Playlist',
+        tracks: 'tracks',
+        track: 'track',
+        trackTwo: 'tracks',
+        searchPlaceholder: '🔍 Search tracks...',
+        emptyPlaylist: 'No tracks yet',
+        emptyHint: 'Add tracks to get started!',
+
+        // Now Playing
+        noTrack: 'No track playing',
+        selectTrack: 'Select a track to start',
+
+        // Drag and drop
+        dragHint: '✅ Drag & drop files - works offline!',
+        youtubeWarning: '⚠️ YouTube download requires internet',
+
+        // Alerts
+        addTracksOffline: 'Use drag & drop to add tracks offline',
+        noTracks: 'Please add tracks first!',
+        youtubeNeedsInternet: '⚠️ This feature requires internet\n\nTo download videos from YouTube, you need an internet connection.\n\nPlease connect to WiFi or mobile data.',
+
+        // Status messages
+        addingTracks: 'Adding tracks...',
+        tracksAdded: 'tracks added!',
+        errorAdding: 'Error adding:',
+
+        // Format modal
+        formatTitle: '🎵 Format Selection',
+        keepVideo: 'Keep as Video',
+        keepVideoDesc: 'Full video file with visuals',
+        audioOnly: 'Audio Only',
+        audioOnlyDesc: 'Smaller size, audio only',
+        formatNote: '💡 Video: watch music videos\n🎧 Audio: save space (~80% smaller)',
+
+        // YouTube modal
+        youtubeTitle: '🔗 Download from YouTube',
+        youtubeOnlineBanner: 'Internet connection required',
+        youtubePlaceholder: 'Paste YouTube URL',
+        youtubeExample: 'Example: https://www.youtube.com/watch?v=...',
+        youtubeFormat: 'Format:',
+        youtubeVideo: '🎬 Video (MP4)',
+        youtubeAudio: '🎵 Audio Only (MP3)',
+        youtubeButton: '🚀 Open Download Site',
+        youtubeHow: '💡 How it works:',
+        youtubeStep1: '1. A trusted download website will open',
+        youtubeStep2: '2. Download the file there and add to player',
+        youtubeSafe: 'Safe and no backend required!',
+        youtubeWarningTitle: '⚠️ Important:',
+        youtubeWarning1: '• Requires internet',
+        youtubeWarning2: '• Public videos only',
+        youtubeWarning3: '• Respect copyright laws',
+        youtubeWarning4: '• Third-party service, not ours'
+    }
+};
+
+let currentLang = localStorage.getItem('playerLanguage') || 'ru';
+
+function t(key) {
+    return translations[currentLang][key] || key;
+}
+
+function switchLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem('playerLanguage', lang);
+    updateUILanguage();
+}
+
+function updateUILanguage() {
+    // Update all elements with data-lang attributes
+    document.querySelectorAll('[data-lang-ru]').forEach(el => {
+        el.textContent = el.getAttribute(`data-lang-${currentLang}`);
+    });
+
+    // Update language toggle button
+    const langText = document.getElementById('langText');
+    if (langText) {
+        langText.textContent = currentLang === 'ru' ? 'EN' : 'RU';
+    }
+
+    // Trigger UI update if player exists
+    if (window.player) {
+        window.player.updateLanguage();
+    }
+}
+
 // IndexedDB Manager
 class MusicDB {
     constructor() {
@@ -1057,9 +1225,24 @@ function openYouTubeDownloader(url, format) {
     return serviceUrl;
 }
 
+// Language toggle initialization
+function initLanguageToggle() {
+    const langToggle = document.getElementById('langToggle');
+    if (langToggle) {
+        langToggle.addEventListener('click', () => {
+            const newLang = currentLang === 'ru' ? 'en' : 'ru';
+            switchLanguage(newLang);
+        });
+    }
+
+    // Initialize language on load
+    updateUILanguage();
+}
+
 // Initialize the player when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     window.player = new MusicPlayer();
+    initLanguageToggle();
     initHelpModal();
     initFormatModal();
     initYoutubeModal();

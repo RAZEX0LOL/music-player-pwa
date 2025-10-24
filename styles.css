@@ -25,6 +25,12 @@ header {
     align-items: center;
 }
 
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 header h1 {
     font-size: 2em;
     color: #0f3460;
@@ -51,6 +57,7 @@ header h1 {
 
 .add-songs-section {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 30px;
 }
@@ -345,6 +352,25 @@ header h1 {
     color: #777;
 }
 
+/* Language button styling */
+.lang-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: #fff;
+    font-size: 0.85em;
+    font-weight: 700;
+    padding: 8px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 45px;
+}
+
+.lang-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
 /* Help button styling */
 .help-btn {
     background: rgba(255,255,255,0.1);
@@ -502,8 +528,34 @@ header h1 {
         padding: 10px;
     }
 
+    header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+
     header h1 {
         font-size: 1.5em;
+        text-align: center;
+    }
+
+    .status {
+        justify-content: center;
+    }
+
+    .add-songs-section {
+        flex-direction: column;
+    }
+
+    .btn-primary, .btn-secondary, .btn-danger {
+        flex: 1;
+        min-width: 100%;
+        padding: 12px;
+        font-size: 0.95em;
+    }
+
+    .btn-secondary {
+        flex: 1;
     }
 
     .vinyl-disc {
@@ -527,13 +579,14 @@ header h1 {
         width: 35px;
         height: 35px;
         font-size: 1.2em;
+        align-self: center;
     }
 
     .modal-content {
-        margin: 10% auto;
+        margin: 5% auto;
         padding: 20px;
         width: 95%;
-        max-height: 85vh;
+        max-height: 90vh;
     }
 
     .modal-content h2 {
@@ -546,6 +599,14 @@ header h1 {
 
     .help-section {
         padding: 15px;
+    }
+
+    .format-options {
+        grid-template-columns: 1fr;
+    }
+
+    .video-display {
+        max-width: 100%;
     }
 }
 
