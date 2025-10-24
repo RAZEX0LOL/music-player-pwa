@@ -386,15 +386,46 @@ class MusicPlayer {
         this.audio.addEventListener('loadedmetadata', () => this.updateDuration());
         this.audio.addEventListener('ended', () => this.playNext());
 
-        // Prevent audio from pausing when screen locks (for background playback)
-        this.audio.addEventListener('pause', (e) => {
-            // If we're supposed to be playing, resume audio immediately
-            if (this.isPlaying && this.audio.src && document.hidden) {
-                console.log('Audio paused while hidden - resuming for background playback');
-                setTimeout(() => {
-                    this.audio.play().catch(err => console.log('Background resume failed:', err));
-                }, 100);
-            }
+        // Track if we're trying to resume (prevent infinite loops)
+        this.isResuming = false;
+
+        // Prevent media from pausing when screen locks (for background playback)
+        const preventBackgroundPause = (element, name) => {
+            element.addEventListener('pause', () => {
+                // Only auto-resume if:
+                // 1. We're supposed to be playing
+                // 2. This element has content
+                // 3. Screen is hidden (locked)
+                // 4. We're not already in a resume attempt
+                if (this.isPlaying && element.src && document.hidden && !this.isResuming) {
+                    console.log(`${name} paused while hidden - resuming for background playback`);
+                    this.isResuming = true;
+                    setTimeout(() => {
+                        element.play()
+                            .then(() => {
+                                this.isResuming = false;
+                            })
+                            .catch(err => {
+                                console.log(`Background resume failed:`, err);
+                                this.isResuming = false;
+                            });
+                    }, 50);
+                }
+            });
+        };
+
+        preventBackgroundPause(this.audio, 'Audio');
+        preventBackgroundPause(this.videoDisplay, 'Video');
+
+        // Handle when media actually starts playing
+        this.audio.addEventListener('playing', () => {
+            this.isResuming = false;
+            console.log('Audio playing event');
+        });
+
+        this.videoDisplay.addEventListener('playing', () => {
+            this.isResuming = false;
+            console.log('Video playing event');
         });
 
         // Video element event listeners
@@ -407,17 +438,6 @@ class MusicPlayer {
         this.videoDisplay.addEventListener('timeupdate', () => {
             if (this.videoDisplay.src) {
                 this.updateProgress();
-                // Sync video with audio (if both are playing)
-                if (this.audio.src && !this.audio.paused && Math.abs(this.videoDisplay.currentTime - this.audio.currentTime) > 0.3) {
-                    this.videoDisplay.currentTime = this.audio.currentTime;
-                }
-            }
-        });
-
-        // Sync audio with video when seeking
-        this.audio.addEventListener('seeked', () => {
-            if (this.videoDisplay.src && this.videoDisplay.muted) {
-                this.videoDisplay.currentTime = this.audio.currentTime;
             }
         });
 
@@ -426,21 +446,24 @@ class MusicPlayer {
 
         // Handle visibility changes (screen lock/unlock)
         document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                // Screen locked or app backgrounded - ensure audio continues
-                if (this.isPlaying && this.audio.src) {
-                    // Video will pause automatically, but keep audio playing
-                    if (this.audio.paused) {
-                        this.audio.play().catch(e => console.log('Resume audio error:', e));
+            if (!document.hidden) {
+                // Screen unlocked or app foregrounded
+                console.log('App visible again');
+                // Reset resume flag
+                this.isResuming = false;
+
+                // If we should be playing, make sure media is playing
+                if (this.isPlaying) {
+                    const media = this.getActiveMediaElement();
+                    if (media.paused) {
+                        console.log('Resuming playback after unlock');
+                        setTimeout(() => {
+                            media.play().catch(e => console.log('Resume on unlock error:', e));
+                        }, 200);
                     }
                 }
             } else {
-                // Screen unlocked or app foregrounded - resume video if needed
-                if (this.isPlaying && this.videoDisplay.src && this.videoDisplay.muted) {
-                    // Sync and resume video
-                    this.videoDisplay.currentTime = this.audio.currentTime;
-                    this.videoDisplay.play().catch(e => console.log('Resume video error:', e));
-                }
+                console.log('App hidden (screen locked)');
             }
         });
 
@@ -497,11 +520,11 @@ class MusicPlayer {
 
     // YouTube modal removed
 
-    // Helper method to get the active media element (always audio for background playback)
+    // Helper method to get the active media element
     getActiveMediaElement() {
-        // Always return audio element because it plays in background when screen is locked
-        // For video files, both video and audio elements are loaded, but audio provides the sound
-        return this.audio;
+        // Return video element if it has a source (video file playing)
+        // Otherwise return audio element (audio file playing)
+        return this.videoDisplay.src ? this.videoDisplay : this.audio;
     }
 
     handleSearch(query) {
@@ -723,28 +746,24 @@ class MusicPlayer {
                           song.name.match(/\.(mp4|m4v|webm|mpeg)$/i);
 
             if (isVideo) {
-                // For video files: load both video (for display) and audio (for background playback)
+                // For video files: use ONLY video element (it plays audio too)
                 this.videoDisplay.src = url;
                 this.videoDisplay.classList.add('show');
                 this.vinylDisc.style.display = 'none';
 
-                // ALSO load audio element with same source for background playback when screen locks
-                this.audio.src = url;
+                // Don't use audio element for video files (causes lag)
+                this.audio.src = '';
+                this.audio.pause();
 
-                // Mute video element (audio element will play the sound)
-                this.videoDisplay.muted = true;
-                this.videoDisplay.volume = 0;
+                // Video element plays both video and audio
+                this.videoDisplay.muted = false;
+                this.videoDisplay.volume = this.audio.volume || 0.7;
 
-                // Load both elements
+                // Load video
                 this.videoDisplay.load();
-                this.audio.load();
 
                 try {
-                    // Play both - video for visual, audio for sound (works when locked)
-                    await Promise.all([
-                        this.videoDisplay.play(),
-                        this.audio.play()
-                    ]);
+                    await this.videoDisplay.play();
                     this.isPlaying = true;
                     if ('mediaSession' in navigator) {
                         navigator.mediaSession.playbackState = 'playing';
@@ -761,7 +780,6 @@ class MusicPlayer {
                 this.videoDisplay.src = '';
                 this.videoDisplay.pause();
                 this.videoDisplay.muted = false;
-                this.videoDisplay.volume = this.audio.volume;
                 this.videoDisplay.classList.remove('show');
                 this.vinylDisc.style.display = 'flex';
 
@@ -771,7 +789,7 @@ class MusicPlayer {
                 try {
                     await this.audio.play();
                     this.isPlaying = true;
-                    if ('mediaSession' in navigator) {
+                    if ('mediaSession' in navigator') {
                         navigator.mediaSession.playbackState = 'playing';
                     }
                 } catch (playError) {
