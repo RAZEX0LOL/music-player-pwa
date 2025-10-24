@@ -1121,11 +1121,11 @@ function initYoutubeModal() {
         }
 
         try {
-            await downloadYoutubeVideo(url, format, quality, (progress) => {
+            const result = await downloadYoutubeVideo(url, format, quality, (progress) => {
                 progressBar.style.width = progress + '%';
             });
 
-            // Success!
+            // Success - external site opened
             modal.classList.remove('show');
             urlInput.value = '';
             progressDiv.style.display = 'none';
@@ -1138,27 +1138,20 @@ function initYoutubeModal() {
                 downloadBtn.textContent = currentLang === 'ru' ? '📥 Скачать' : '📥 Download';
             }
 
-            // Reload playlist to show new track
-            await window.player.loadPlaylist();
-
-            // Show success message
+            // Show instruction message
             window.player.statusText.textContent = currentLang === 'ru'
-                ? '✅ Видео успешно загружено!'
-                : '✅ Video downloaded successfully!';
+                ? '📥 Скачайте файл на сайте и добавьте его в плеер'
+                : '📥 Download the file from the site and add it to the player';
 
             setTimeout(() => {
                 window.player.updateOnlineStatus(navigator.onLine);
-            }, 3000);
+            }, 5000);
 
         } catch (error) {
             console.error('YouTube download error:', error);
-
-            // Only show alert if not canceled by user
-            if (!error.message.includes('CORS restrictions')) {
-                alert(currentLang === 'ru'
-                    ? `Ошибка: ${error.message}`
-                    : `Error: ${error.message}`);
-            }
+            alert(currentLang === 'ru'
+                ? `Ошибка: ${error.message}`
+                : `Error: ${error.message}`);
 
             progressDiv.style.display = 'none';
             downloadBtn.disabled = false;
@@ -1182,187 +1175,57 @@ function initYoutubeModal() {
     });
 }
 
-// YouTube download function - Direct implementation without external dependencies
+// YouTube download function - Opens external site (CORS prevents direct API access)
 async function downloadYoutubeVideo(url, format, quality, progressCallback) {
-    progressCallback(5);
     console.log('=== YouTube Download Started ===');
     console.log('URL:', url);
     console.log('Format:', format);
     console.log('Quality:', quality);
 
-    try {
-        // Method 1: Try Cobalt API with CORS proxy
-        progressCallback(10);
+    progressCallback(20);
 
-        const cobaltInstances = [
-            'https://api.cobalt.tools',
-            'https://co.wuk.sh'
-        ];
+    // Inform user about the process
+    const message = currentLang === 'ru'
+        ? `📥 Открытие сайта загрузки...\n\n✅ Что делать:\n1. Сейчас откроется сайт для загрузки\n2. Нажмите кнопку "Download" на сайте\n3. Скачайте файл на устройство\n4. Добавьте файл в плеер кнопкой "📁 Добавить треки"\n\n💡 Примечание: Из-за ограничений браузера (CORS) прямая загрузка невозможна, поэтому используется внешний сайт.`
+        : `📥 Opening download site...\n\n✅ What to do:\n1. A download site will open now\n2. Click the "Download" button on the site\n3. Download the file to your device\n4. Add the file to the player using "📁 Add Tracks"\n\n💡 Note: Due to browser restrictions (CORS), direct download is not possible, so we use an external site.`;
 
-        const requestBody = {
-            url: url,
-            vCodec: 'h264',
-            vQuality: quality === 'highest' ? '1080' : (quality === 'high' ? '720' : (quality === 'medium' ? '480' : '360')),
-            aFormat: format === 'audio' ? 'mp3' : 'best',
-            isAudioOnly: format === 'audio',
-            filenamePattern: 'basic',
-            downloadMode: 'auto'
-        };
+    alert(message);
 
-        console.log('Request payload:', JSON.stringify(requestBody, null, 2));
-        progressCallback(15);
+    progressCallback(50);
 
-        let downloadUrl = null;
-        let apiError = null;
+    // Use different sites based on format
+    const downloadSites = {
+        audio: [
+            `https://yt5s.io/en/youtube-to-mp3?q=${encodeURIComponent(url)}`,
+            `https://ytmp3.nu/xk90/?url=${encodeURIComponent(url)}`,
+            `https://y2mate.nu/en/youtube-to-mp3?q=${encodeURIComponent(url)}`
+        ],
+        video: [
+            `https://yt5s.io/en/youtube-to-mp4?q=${encodeURIComponent(url)}`,
+            `https://ytmp3.nu/S8Vp/?url=${encodeURIComponent(url)}`,
+            `https://y2mate.nu/en/youtube-to-mp4?q=${encodeURIComponent(url)}`
+        ]
+    };
 
-        // Try Cobalt API instances
-        for (let i = 0; i < cobaltInstances.length; i++) {
-            const instance = cobaltInstances[i];
-            try {
-                console.log(`\n[Attempt ${i + 1}/${cobaltInstances.length}] Trying: ${instance}`);
-                progressCallback(20 + (i * 15));
+    const siteUrl = downloadSites[format][0];
 
-                const response = await fetch(instance + '/api/json', {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                        'Origin': window.location.origin
-                    },
-                    body: JSON.stringify(requestBody)
-                });
+    console.log('Opening external site:', siteUrl);
+    progressCallback(80);
 
-                console.log('Response status:', response.status);
-                console.log('Response headers:', [...response.headers.entries()]);
+    // Open in new tab
+    const newWindow = window.open(siteUrl, '_blank');
 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error(`HTTP Error ${response.status}:`, errorText);
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                const data = await response.json();
-                console.log('API Response:', JSON.stringify(data, null, 2));
-
-                if (data.status === 'redirect' && data.url) {
-                    downloadUrl = data.url;
-                    console.log('✅ Got redirect URL:', downloadUrl);
-                    break;
-                } else if (data.status === 'stream' && data.url) {
-                    downloadUrl = data.url;
-                    console.log('✅ Got stream URL:', downloadUrl);
-                    break;
-                } else if (data.status === 'picker' && data.picker && data.picker.length > 0) {
-                    downloadUrl = data.picker[0].url;
-                    console.log('✅ Got picker URL:', downloadUrl);
-                    break;
-                } else if (data.status === 'error') {
-                    const errorMsg = data.text || 'Unknown API error';
-                    console.error('❌ API returned error:', errorMsg);
-                    throw new Error(errorMsg);
-                } else {
-                    console.error('❌ Unexpected response structure:', data);
-                    throw new Error('Unexpected API response format');
-                }
-
-            } catch (error) {
-                console.error(`❌ Instance ${instance} failed:`, error.message);
-                apiError = error;
-
-                if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-                    console.error('   → Likely CORS issue or network error');
-                }
-
-                continue;
-            }
-        }
-
-        progressCallback(50);
-
-        // If no download URL obtained, show user options
-        if (!downloadUrl) {
-            console.error('=== All API attempts failed ===');
-            console.error('Last error:', apiError);
-
-            // Show user-friendly error with external site option
-            const useExternalSite = confirm(
-                currentLang === 'ru'
-                    ? `⚠️ Не удалось загрузить через API\n\nПричины:\n• CORS ограничения браузера\n• API недоступен\n• Видео защищено\n\nХотите открыть внешний сайт для загрузки?\n(Откроется в новой вкладке)`
-                    : `⚠️ API download failed\n\nReasons:\n• Browser CORS restrictions\n• API unavailable\n• Video protected\n\nOpen external download site?\n(Opens in new tab)`
-            );
-
-            if (useExternalSite) {
-                const externalUrl = format === 'audio'
-                    ? `https://yt1s.com/en/youtube-to-mp3?q=${encodeURIComponent(url)}`
-                    : `https://yt1s.com/en/youtube-to-mp4?q=${encodeURIComponent(url)}`;
-
-                console.log('Opening external site:', externalUrl);
-                window.open(externalUrl, '_blank');
-            }
-
-            throw new Error('API download not available - CORS restrictions');
-        }
-
-        // Download the file
-        console.log('\n=== Starting file download ===');
-        console.log('Download URL:', downloadUrl);
-        progressCallback(60);
-
-        const fileResponse = await fetch(downloadUrl, {
-            mode: 'cors',
-            credentials: 'omit'
-        });
-
-        console.log('File response status:', fileResponse.status);
-        console.log('File response headers:', [...fileResponse.headers.entries()]);
-
-        if (!fileResponse.ok) {
-            throw new Error(`File download failed: HTTP ${fileResponse.status}`);
-        }
-
-        progressCallback(75);
-
-        const blob = await fileResponse.blob();
-        console.log('✅ File downloaded:', blob.size, 'bytes, type:', blob.type);
-
-        if (blob.size === 0) {
-            throw new Error('Downloaded file is empty');
-        }
-
-        progressCallback(85);
-
-        // Create proper filename
-        const timestamp = Date.now();
-        const extension = format === 'audio' ? 'mp3' : 'mp4';
-        const filename = `youtube-${extension}-${timestamp}.${extension}`;
-
-        // Ensure correct MIME type
-        const mimeType = format === 'audio' ? 'audio/mpeg' : 'video/mp4';
-        const file = new File([blob], filename, { type: mimeType });
-
-        console.log('Created file:', filename, 'size:', file.size);
-        progressCallback(90);
-
-        // Add to database
-        console.log('Adding to IndexedDB...');
-        await window.player.db.addSong(file);
-
-        progressCallback(95);
-
-        // Reload playlist
-        await window.player.loadPlaylist();
-
-        progressCallback(100);
-        console.log('=== Download Complete! ===\n');
-
-        return file;
-
-    } catch (error) {
-        console.error('\n=== YouTube Download Failed ===');
-        console.error('Error:', error.message);
-        console.error('Stack:', error.stack);
-        throw error;
+    if (!newWindow) {
+        throw new Error(currentLang === 'ru'
+            ? 'Не удалось открыть сайт. Разрешите всплывающие окна для этого сайта.'
+            : 'Failed to open site. Please allow pop-ups for this site.');
     }
+
+    progressCallback(100);
+    console.log('External site opened successfully');
+
+    // Return success (user will manually add the file)
+    return { success: true, method: 'external' };
 }
 
 // Helper function to extract YouTube video ID
