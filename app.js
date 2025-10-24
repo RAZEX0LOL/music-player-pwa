@@ -386,6 +386,17 @@ class MusicPlayer {
         this.audio.addEventListener('loadedmetadata', () => this.updateDuration());
         this.audio.addEventListener('ended', () => this.playNext());
 
+        // Prevent audio from pausing when screen locks (for background playback)
+        this.audio.addEventListener('pause', (e) => {
+            // If we're supposed to be playing, resume audio immediately
+            if (this.isPlaying && this.audio.src && document.hidden) {
+                console.log('Audio paused while hidden - resuming for background playback');
+                setTimeout(() => {
+                    this.audio.play().catch(err => console.log('Background resume failed:', err));
+                }, 100);
+            }
+        });
+
         // Video element event listeners
         this.videoDisplay.addEventListener('ended', () => this.playNext());
         this.videoDisplay.addEventListener('loadedmetadata', () => {
@@ -412,6 +423,26 @@ class MusicPlayer {
 
         window.addEventListener('online', () => this.updateOnlineStatus(true));
         window.addEventListener('offline', () => this.updateOnlineStatus(false));
+
+        // Handle visibility changes (screen lock/unlock)
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // Screen locked or app backgrounded - ensure audio continues
+                if (this.isPlaying && this.audio.src) {
+                    // Video will pause automatically, but keep audio playing
+                    if (this.audio.paused) {
+                        this.audio.play().catch(e => console.log('Resume audio error:', e));
+                    }
+                }
+            } else {
+                // Screen unlocked or app foregrounded - resume video if needed
+                if (this.isPlaying && this.videoDisplay.src && this.videoDisplay.muted) {
+                    // Sync and resume video
+                    this.videoDisplay.currentTime = this.audio.currentTime;
+                    this.videoDisplay.play().catch(e => console.log('Resume video error:', e));
+                }
+            }
+        });
 
         // Drag and drop support for offline file uploads
         const dropZone = document.body;
