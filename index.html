@@ -1,209 +1,196 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#16213e">
-    <meta name="description" content="Офлайн музыкальный плеер PWA">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta name="theme-color" content="#16213e" />
+		<meta name="description" content="Офлайн музыкальный плеер PWA" />
 
-    <!-- iOS PWA Support -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Музыка">
-    <link rel="apple-touch-icon" href="./icon.svg">
+		<!-- iOS PWA Support -->
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta
+			name="apple-mobile-web-app-status-bar-style"
+			content="black-translucent"
+		/>
+		<meta name="apple-mobile-web-app-title" content="Музыка" />
+		<link rel="apple-touch-icon" href="./icon.svg" />
 
-    <title>Офлайн Музыкальный Плеер</title>
-    <link rel="manifest" href="./manifest.json">
-    <link rel="stylesheet" href="./styles.css">
-</head>
-<body>
-    <div class="container">
-        <header>
-            <h1 data-lang-ru="🎵 Моя Музыка" data-lang-en="🎵 My Music">🎵 Моя Музыка</h1>
-            <div class="header-controls">
-                <div class="status">
-                    <span id="statusIndicator" class="online">●</span>
-                    <span id="statusText" data-lang-ru="Готов" data-lang-en="Ready">Готов</span>
-                </div>
-                <button id="langToggle" class="lang-btn" title="Switch Language / Переключить язык">
-                    <span id="langText">EN</span>
-                </button>
-                <button id="helpBtn" class="help-btn" title="Инструкция / Help">❓</button>
-            </div>
-        </header>
+		<title>Офлайн Музыкальный Плеер</title>
+		<link rel="manifest" href="./manifest.json" />
+		<link rel="stylesheet" href="./styles.css" />
+	</head>
+	<body>
+		<div class="container">
+			<header>
+				<h1 data-lang-ru="🎵 Моя Музыка" data-lang-en="🎵 My Music">
+					🎵 Моя Музыка
+				</h1>
+				<div class="header-controls">
+					<div class="status">
+						<span id="statusIndicator" class="online">●</span>
+						<span id="statusText" data-lang-ru="Готов" data-lang-en="Ready"
+							>Готов</span
+						>
+					</div>
+					<button
+						id="langToggle"
+						class="lang-btn"
+						title="Switch Language / Переключить язык"
+					>
+						<span id="langText">EN</span>
+					</button>
+					<button id="helpBtn" class="help-btn" title="Инструкция / Help">
+						❓
+					</button>
+				</div>
+			</header>
 
-        <div class="add-songs-section">
-            <input type="file" id="fileInput" accept="audio/*,video/mp4,video/x-m4v,.mp3,.wav,.ogg,.m4a,.flac,.mp4,.m4v,.aac,.wma,.webm" multiple hidden>
-            <button id="addTracksBtn" class="btn-primary">
-                <span id="addTracksText" data-lang-ru="📁 Добавить треки" data-lang-en="📁 Add Tracks">📁 Добавить треки</span>
-            </button>
-            <button id="clearAllBtn" class="btn-danger">
-                <span id="clearAllText" data-lang-ru="🗑️ Очистить всё" data-lang-en="🗑️ Clear All">🗑️ Очистить всё</span>
-            </button>
-            <div class="offline-features-note">
-                <p id="dragDropHint" style="font-size: 0.85em; color: rgba(255,255,255,0.6); margin-top: 8px; text-align: center;" data-lang-ru="✅ Перетаскивание файлов - работает офлайн!" data-lang-en="✅ Drag & drop files - works offline!">
-                    ✅ Перетаскивание файлов - работает офлайн!
-                </p>
-            </div>
-        </div>
+			<div class="add-songs-section">
+				<input
+					type="file"
+					id="fileInput"
+					accept="audio/*,video/mp4,video/x-m4v,.mp3,.wav,.ogg,.m4a,.flac,.mp4,.m4v,.aac,.wma,.webm"
+					multiple
+					hidden
+				/>
+				<button id="addTracksBtn" class="btn-primary">
+					<span
+						id="addTracksText"
+						data-lang-ru="📁 Добавить треки"
+						data-lang-en="📁 Add Tracks"
+						>📁 Добавить треки</span
+					>
+				</button>
+				<button id="clearAllBtn" class="btn-danger">
+					<span
+						id="clearAllText"
+						data-lang-ru="🗑️ Очистить всё"
+						data-lang-en="🗑️ Clear All"
+						>🗑️ Очистить всё</span
+					>
+				</button>
+				<div class="offline-features-note">
+					<p
+						id="dragDropHint"
+						style="
+							font-size: 0.85em;
+							color: rgba(255, 255, 255, 0.6);
+							margin-top: 8px;
+							text-align: center;
+						"
+						data-lang-ru="✅ Перетаскивание файлов - работает офлайн!"
+						data-lang-en="✅ Drag & drop files - works offline!"
+					>
+						✅ Перетаскивание файлов - работает офлайн!
+					</p>
+				</div>
+			</div>
 
-        <div class="now-playing">
-            <div class="album-art">
-                <video id="videoDisplay" class="video-display" playsinline preload="auto"></video>
-                <div class="vinyl-disc" id="vinylDisc">
-                    <div class="vinyl-center"></div>
-                </div>
-            </div>
-            <div class="song-info">
-                <h2 id="currentSongTitle">Трек не играет</h2>
-                <p id="currentSongArtist">Выберите трек для начала</p>
-            </div>
-        </div>
+			<div class="now-playing">
+				<div class="album-art">
+					<video
+						id="videoDisplay"
+						class="video-display"
+						playsinline
+						preload="auto"
+					></video>
+					<div class="vinyl-disc" id="vinylDisc">
+						<div class="vinyl-center"></div>
+					</div>
+				</div>
+				<div class="song-info">
+					<h2 id="currentSongTitle">Трек не играет</h2>
+					<p id="currentSongArtist">Выберите трек для начала</p>
+				</div>
+			</div>
 
-        <div class="player-controls">
-            <div class="progress-container">
-                <span id="currentTime">0:00</span>
-                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0">
-                <span id="duration">0:00</span>
-            </div>
+			<div class="player-controls">
+				<div class="progress-container">
+					<span id="currentTime">0:00</span>
+					<input
+						type="range"
+						id="progressBar"
+						class="progress-bar"
+						min="0"
+						max="100"
+						value="0"
+					/>
+					<span id="duration">0:00</span>
+				</div>
 
-            <div class="controls">
-                <button id="prevBtn" class="control-btn">⏮️</button>
-                <button id="playPauseBtn" class="control-btn play-btn">▶️</button>
-                <button id="nextBtn" class="control-btn">⏭️</button>
-            </div>
+				<div class="controls">
+					<button id="prevBtn" class="control-btn">⏮️</button>
+					<button id="playPauseBtn" class="control-btn play-btn">▶️</button>
+					<button id="nextBtn" class="control-btn">⏭️</button>
+				</div>
 
-            <div class="volume-control">
-                <span>🔊</span>
-                <input type="range" id="volumeBar" class="volume-bar" min="0" max="100" value="70">
-            </div>
-        </div>
+				<div class="volume-control">
+					<span>🔊</span>
+					<input
+						type="range"
+						id="volumeBar"
+						class="volume-bar"
+						min="0"
+						max="100"
+						value="70"
+					/>
+				</div>
+			</div>
 
-        <div class="playlist">
-            <h3><span id="playlistLabel" data-lang-ru="Плейлист" data-lang-en="Playlist">Плейлист</span> (<span id="songCount">0</span> <span id="songsLabel" data-lang-ru="треков" data-lang-en="tracks">треков</span>)</h3>
-            <div class="search-container">
-                <input type="text" id="searchInput" class="search-input" data-lang-ru="🔍 Поиск треков..." data-lang-en="🔍 Search tracks..." placeholder="🔍 Поиск треков...">
-            </div>
-            <div id="songList" class="song-list">
-                <div class="empty-state">
-                    <p id="emptyText" data-lang-ru="Пока нет треков" data-lang-en="No tracks yet">Пока нет треков</p>
-                    <p class="hint" id="emptyHint" data-lang-ru="Добавьте треки для начала работы!" data-lang-en="Add tracks to get started!">Добавьте треки для начала работы!</p>
-                </div>
-            </div>
-        </div>
-    </div>
+			<div class="playlist">
+				<h3>
+					<span
+						id="playlistLabel"
+						data-lang-ru="Плейлист"
+						data-lang-en="Playlist"
+						>Плейлист</span
+					>
+					(<span id="songCount">0</span>
+					<span id="songsLabel" data-lang-ru="треков" data-lang-en="tracks"
+						>треков</span
+					>)
+				</h3>
+				<div class="search-container">
+					<input
+						type="text"
+						id="searchInput"
+						class="search-input"
+						data-lang-ru="🔍 Поиск треков..."
+						data-lang-en="🔍 Search tracks..."
+						placeholder="🔍 Поиск треков..."
+					/>
+				</div>
+				<div id="songList" class="song-list">
+					<div class="empty-state">
+						<p
+							id="emptyText"
+							data-lang-ru="Пока нет треков"
+							data-lang-en="No tracks yet"
+						>
+							Пока нет треков
+						</p>
+						<p
+							class="hint"
+							id="emptyHint"
+							data-lang-ru="Добавьте треки для начала работы!"
+							data-lang-en="Add tracks to get started!"
+						>
+							Добавьте треки для начала работы!
+						</p>
+					</div>
+				</div>
+			</div>
+		</div>
 
-    <!-- Video element supports both audio and video formats (including MP4) -->
-    <!-- Hidden: video is invisible, only audio plays -->
-    <video id="audioPlayer" preload="metadata" playsinline style="display: none;"></video>
+		<!-- Video element supports both audio and video formats (including MP4) -->
+		<!-- Hidden: video is invisible, only audio plays -->
+		<video
+			id="audioPlayer"
+			preload="metadata"
+			playsinline
+			style="display: none"
+		></video>
 
-    <!-- Help Modal -->
-    <div id="helpModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>📖 Инструкция / User Guide</h2>
-
-            <div class="help-section">
-                <h3>🎵 Как добавить музыку / How to Add Music</h3>
-                <p><strong>Способ 1 (Офлайн / Offline):</strong> Нажмите "📁 Добавить треки" → Выберите файлы</p>
-                <p><strong>Method 1 (Offline):</strong> Click "📁 Add Tracks" → Select files</p>
-                <p><strong>Способ 2 (Офлайн / Offline):</strong> Перетащите MP3/MP4 файлы в окно</p>
-                <p><strong>Method 2 (Offline):</strong> Drag & drop MP3/MP4 files into window</p>
-                <p style="margin-top: 10px;"><strong>⚠️ Способ 3 (Требует интернет):</strong> Нажмите "🔗 YouTube" → Вставьте URL</p>
-                <p><strong>⚠️ Method 3 (Requires Internet):</strong> Click "🔗 YouTube" → Paste URL</p>
-            </div>
-
-            <div class="help-section">
-                <h3>▶️ Управление / Controls</h3>
-                <p>⏮️ Предыдущая / Previous | ▶️ Играть / Play | ⏸️ Пауза / Pause | ⏭️ Следующая / Next</p>
-                <p>🔊 Громкость / Volume | Прогресс бар / Progress bar для перемотки / for seeking</p>
-            </div>
-
-            <div class="help-section">
-                <h3>💾 Хранилище / Storage</h3>
-                <p>📱 <strong>Телефон / Phone:</strong> до / up to 10 GB</p>
-                <p>💻 <strong>Компьютер / Desktop:</strong> до / up to 500 GB!</p>
-                <p>✅ Музыка хранится <strong>локально</strong> / Music stored <strong>locally</strong></p>
-                <p>✅ Работает <strong>офлайн</strong> / Works <strong>offline</strong></p>
-            </div>
-
-            <div class="help-section">
-                <h3>📶 Офлайн режим / Offline Mode</h3>
-                <p><strong style="color: #4ecca3;">✅ Работает офлайн / Works Offline:</strong></p>
-                <p>• Воспроизведение музыки / Music playback</p>
-                <p>• Добавление файлов с устройства / Adding files from device</p>
-                <p>• Перетаскивание файлов / Drag & drop files</p>
-                <p>• Поиск по треках / Search tracks</p>
-                <p>• Выбор формата видео/аудио / Video/audio format selection</p>
-                <p style="margin-top: 10px;"><strong style="color: #f5576c;">⚠️ Требует интернет / Requires Internet:</strong></p>
-                <p>• Загрузка с YouTube / YouTube downloads</p>
-                <p>• Первая установка приложения (один раз) / First app install (once)</p>
-            </div>
-
-            <div class="help-section">
-                <h3>🎼 Форматы / Formats</h3>
-                <p>✅ MP3, WAV, OGG, FLAC, M4A, AAC</p>
-                <p>✅ MP4, M4V (видео - только звук / video - audio only)</p>
-            </div>
-
-            <div class="help-section">
-                <h3>📱 Установить как приложение / Install as App</h3>
-                <p><strong>iPhone:</strong> Safari → Поделиться → На экран "Домой"</p>
-                <p><strong>iPhone:</strong> Safari → Share → Add to Home Screen</p>
-                <p><strong>Android:</strong> Chrome → Меню (⋮) → Установить приложение</p>
-                <p><strong>Android:</strong> Chrome → Menu (⋮) → Install app</p>
-                <p><strong>Desktop:</strong> Chrome/Edge → Значок установки (⊕)</p>
-                <p><strong>Desktop:</strong> Chrome/Edge → Install icon (⊕)</p>
-            </div>
-
-            <div class="help-section">
-                <h3>📚 Полная инструкция / Full Guide</h3>
-                <p>🇷🇺 <a href="https://github.com/RAZEX0LOL/music-player-pwa/blob/master/INSTRUKCIYA.md" target="_blank">Русская инструкция</a></p>
-                <p>🇬🇧 <a href="https://github.com/RAZEX0LOL/music-player-pwa/blob/master/USER-GUIDE.md" target="_blank">English User Guide</a></p>
-            </div>
-
-            <div class="help-section" style="text-align: center; padding-top: 10px;">
-                <p style="color: rgba(255,255,255,0.6); font-size: 0.9em;">
-                    🔒 100% приватно / 100% private<br>
-                    Нет слежки / No tracking | Нет рекламы / No ads
-                </p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Format Selection Modal -->
-    <div id="formatModal" class="modal">
-        <div class="modal-content format-modal">
-            <span class="close" id="formatModalClose">&times;</span>
-            <h2>🎵 Выбор формата / Format Selection</h2>
-
-            <div class="format-options">
-                <button class="format-option-btn" id="keepVideoBtn">
-                    <div class="format-icon">🎬</div>
-                    <h3>Оставить как видео</h3>
-                    <p>Keep as Video</p>
-                    <span class="format-desc">Полный видеофайл с изображением</span>
-                    <span class="format-desc">Full video file with visuals</span>
-                </button>
-
-                <button class="format-option-btn" id="audioOnlyBtn">
-                    <div class="format-icon">🎵</div>
-                    <h3>Только аудио</h3>
-                    <p>Audio Only</p>
-                    <span class="format-desc">Меньше размер, только звук</span>
-                    <span class="format-desc">Smaller size, audio only</span>
-                </button>
-            </div>
-
-            <p class="format-note">
-                💡 Видео: можно смотреть клипы<br>
-                💡 Video: watch music videos<br>
-                🎧 Аудио: экономия места (~80% меньше)<br>
-                🎧 Audio: save space (~80% smaller)
-            </p>
-        </div>
-    </div>
-
-    <script src="./app.js"></script>
-</body>
+		<script src="./app.js"></script>
+	</body>
 </html>
