@@ -388,6 +388,7 @@ class MusicPlayer {
 
         // Track if we're trying to resume (prevent infinite loops)
         this.isResuming = false;
+        this.isChangingTrack = false;
 
         // Prevent media from pausing when screen locks (for background playback)
         const preventBackgroundPause = (element, name) => {
@@ -397,7 +398,8 @@ class MusicPlayer {
                 // 2. This element has content
                 // 3. Screen is hidden (locked)
                 // 4. We're not already in a resume attempt
-                if (this.isPlaying && element.src && document.hidden && !this.isResuming) {
+                // 5. We're not changing tracks
+                if (this.isPlaying && element.src && document.hidden && !this.isResuming && !this.isChangingTrack) {
                     console.log(`${name} paused while hidden - resuming for background playback`);
                     this.isResuming = true;
                     setTimeout(() => {
@@ -667,9 +669,14 @@ class MusicPlayer {
             const deletedIndex = this.playlist.findIndex(s => s.id === id);
 
             if (deletedIndex === this.currentIndex) {
+                // Stop whichever media element is active
                 this.audio.pause();
+                this.videoDisplay.pause();
+                this.audio.src = '';
+                this.videoDisplay.src = '';
                 this.isPlaying = false;
                 this.updatePlayButton();
+                this.vinylDisc.classList.remove('spinning');
             }
 
             await this.loadPlaylist();
@@ -693,10 +700,19 @@ class MusicPlayer {
     }
 
     async clearAllSongs() {
-        if (!confirm('Вы уверены, что хотите удалить все песни?')) return;
+        const message = currentLang === 'ru'
+            ? 'Вы уверены, что хотите удалить все треки?'
+            : 'Are you sure you want to delete all tracks?';
+        if (!confirm(message)) return;
 
         try {
+            // Stop and clear both media elements
             this.audio.pause();
+            this.videoDisplay.pause();
+            this.audio.src = '';
+            this.videoDisplay.src = '';
+            this.videoDisplay.classList.remove('show');
+            this.vinylDisc.style.display = 'flex';
             this.isPlaying = false;
             this.updatePlayButton();
 
@@ -704,11 +720,11 @@ class MusicPlayer {
             await this.loadPlaylist();
 
             this.currentIndex = 0;
-            this.currentSongTitle.textContent = 'Песня не играет';
-            this.currentSongArtist.textContent = 'Выберите песню для начала';
+            this.currentSongTitle.textContent = currentLang === 'ru' ? 'Трек не играет' : 'No track playing';
+            this.currentSongArtist.textContent = currentLang === 'ru' ? 'Выберите трек для начала' : 'Select a track to start';
             this.vinylDisc.classList.remove('spinning');
 
-            this.statusText.textContent = 'Все песни удалены';
+            this.statusText.textContent = currentLang === 'ru' ? 'Все треки удалены' : 'All tracks deleted';
             setTimeout(() => {
                 this.updateOnlineStatus(navigator.onLine);
             }, 2000);
@@ -719,6 +735,14 @@ class MusicPlayer {
 
     async playSongAtIndex(index) {
         if (index < 0 || index >= this.playlist.length) return;
+
+        // Flag that we're changing tracks (prevents auto-resume interference)
+        this.isChangingTrack = true;
+
+        // Stop any currently playing media BEFORE loading new track
+        // This prevents the pause event from triggering auto-resume
+        this.audio.pause();
+        this.videoDisplay.pause();
 
         this.currentIndex = index;
         const song = this.playlist[index];
@@ -751,9 +775,8 @@ class MusicPlayer {
                 this.videoDisplay.classList.add('show');
                 this.vinylDisc.style.display = 'none';
 
-                // Don't use audio element for video files (causes lag)
+                // Clear audio element (not needed for video)
                 this.audio.src = '';
-                this.audio.pause();
 
                 // Video element plays both video and audio
                 this.videoDisplay.muted = false;
@@ -768,17 +791,26 @@ class MusicPlayer {
                     if ('mediaSession' in navigator) {
                         navigator.mediaSession.playbackState = 'playing';
                     }
+                    console.log('Video playback started successfully');
                 } catch (playError) {
                     console.error('Video playback error:', playError);
                     this.isPlaying = false;
                     if ('mediaSession' in navigator) {
                         navigator.mediaSession.playbackState = 'paused';
                     }
+                    // Show user-friendly error message
+                    const errorMsg = playError.message.includes('interact')
+                        ? (currentLang === 'ru'
+                            ? 'Нажмите кнопку воспроизведения для начала'
+                            : 'Click play button to start playback')
+                        : (currentLang === 'ru'
+                            ? `Ошибка воспроизведения: ${playError.message}`
+                            : `Playback error: ${playError.message}`);
+                    console.warn(errorMsg);
                 }
             } else {
                 // For audio files: use audio element and show vinyl
                 this.videoDisplay.src = '';
-                this.videoDisplay.pause();
                 this.videoDisplay.muted = false;
                 this.videoDisplay.classList.remove('show');
                 this.vinylDisc.style.display = 'flex';
@@ -792,14 +824,27 @@ class MusicPlayer {
                     if ('mediaSession' in navigator) {
                         navigator.mediaSession.playbackState = 'playing';
                     }
+                    console.log('Audio playback started successfully');
                 } catch (playError) {
                     console.error('Audio playback error:', playError);
                     this.isPlaying = false;
                     if ('mediaSession' in navigator) {
                         navigator.mediaSession.playbackState = 'paused';
                     }
+                    // Show user-friendly error message
+                    const errorMsg = playError.message.includes('interact')
+                        ? (currentLang === 'ru'
+                            ? 'Нажмите кнопку воспроизведения для начала'
+                            : 'Click play button to start playback')
+                        : (currentLang === 'ru'
+                            ? `Ошибка воспроизведения: ${playError.message}`
+                            : `Playback error: ${playError.message}`);
+                    console.warn(errorMsg);
                 }
             }
+
+            // Clear the changing track flag
+            this.isChangingTrack = false;
 
             this.updatePlayButton();
             this.updateNowPlaying(song.name);
@@ -809,38 +854,46 @@ class MusicPlayer {
             this.updateMediaSessionPositionState();
         } catch (error) {
             console.error('Error playing song:', error);
-            this.statusText.textContent = 'Ошибка воспроизведения: ' + error.message;
+            this.statusText.textContent = (currentLang === 'ru' ? 'Ошибка воспроизведения: ' : 'Playback error: ') + error.message;
+            this.isChangingTrack = false;
         }
     }
 
     async togglePlay() {
         if (this.playlist.length === 0) {
-            alert('Пожалуйста, сначала добавьте треки!');
+            alert(currentLang === 'ru' ? 'Пожалуйста, сначала добавьте треки!' : 'Please add tracks first!');
+            return;
+        }
+
+        // Check if we have no track loaded yet
+        if (!this.audio.src && !this.videoDisplay.src) {
+            await this.playSongAtIndex(0);
             return;
         }
 
         const media = this.getActiveMediaElement();
 
-        if (media.src === '') {
-            await this.playSongAtIndex(0);
-            return;
-        }
-
         if (this.isPlaying) {
             media.pause();
             this.vinylDisc.classList.remove('spinning');
+            this.isPlaying = false;
             if ('mediaSession' in navigator) {
                 navigator.mediaSession.playbackState = 'paused';
             }
         } else {
-            await media.play();
-            this.vinylDisc.classList.add('spinning');
-            if ('mediaSession' in navigator) {
-                navigator.mediaSession.playbackState = 'playing';
+            try {
+                await media.play();
+                this.vinylDisc.classList.add('spinning');
+                this.isPlaying = true;
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.playbackState = 'playing';
+                }
+            } catch (error) {
+                console.error('Play error:', error);
+                this.isPlaying = false;
             }
         }
 
-        this.isPlaying = !this.isPlaying;
         this.updatePlayButton();
     }
 
