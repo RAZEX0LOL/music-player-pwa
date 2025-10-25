@@ -1211,4 +1211,84 @@ class MusicPlayer {
 // Initialize the player when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
 	window.player = new MusicPlayer()
+
+	// Language toggle
+	const langToggle = document.getElementById('langToggle')
+	if (langToggle) {
+		langToggle.addEventListener('click', () => {
+			const newLang = currentLang === 'ru' ? 'en' : 'ru'
+			switchLanguage(newLang)
+		})
+	}
+
+	// Help modal
+	const helpBtn = document.getElementById('helpBtn')
+	const helpModal = document.getElementById('helpModal')
+	const helpClose = helpModal?.querySelector('.close')
+
+	if (helpBtn && helpModal) {
+		helpBtn.addEventListener('click', () => {
+			helpModal.classList.add('show')
+		})
+
+		if (helpClose) {
+			helpClose.addEventListener('click', () => {
+				helpModal.classList.remove('show')
+			})
+		}
+
+		helpModal.addEventListener('click', e => {
+			if (e.target === helpModal) {
+				helpModal.classList.remove('show')
+			}
+		})
+	}
+
+	// Format modal
+	const formatModal = document.getElementById('formatModal')
+	const formatModalClose = document.getElementById('formatModalClose')
+	const keepVideoBtn = document.getElementById('keepVideoBtn')
+	const audioOnlyBtn = document.getElementById('audioOnlyBtn')
+
+	if (formatModalClose && formatModal) {
+		formatModalClose.addEventListener('click', () => {
+			formatModal.classList.remove('show')
+		})
+	}
+
+	if (formatModal) {
+		formatModal.addEventListener('click', e => {
+			if (e.target === formatModal) {
+				formatModal.classList.remove('show')
+			}
+		})
+	}
+
+	if (keepVideoBtn && formatModal) {
+		keepVideoBtn.addEventListener('click', async () => {
+			formatModal.classList.remove('show')
+			// Keep as video (add files as-is)
+			if (window.player && window.player.pendingFiles) {
+				await window.player.addFilesToLibrary(
+					window.player.pendingFiles,
+					false
+				)
+				window.player.pendingFiles = []
+			}
+		})
+	}
+
+	if (audioOnlyBtn && formatModal) {
+		audioOnlyBtn.addEventListener('click', async () => {
+			formatModal.classList.remove('show')
+			// Extract audio only
+			if (window.player && window.player.pendingFiles) {
+				await window.player.addFilesToLibrary(window.player.pendingFiles, true)
+				window.player.pendingFiles = []
+			}
+		})
+	}
+
+	// Initialize language on load
+	updateUILanguage()
 })
