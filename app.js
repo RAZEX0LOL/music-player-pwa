@@ -675,12 +675,16 @@ class MusicPlayer {
 			return
 		}
 
+		// Get current song ID for highlighting
+		const currentSong = this.allSongs[this.currentIndex]
+		const currentSongId = currentSong ? currentSong.id : null
+
 		this.songList.innerHTML = this.playlist
 			.map(
 				(song, index) => `
             <div class="song-item ${
-							index === this.currentIndex ? 'active' : ''
-						}" data-index="${index}">
+							song.id === currentSongId ? 'active' : ''
+						}" data-index="${index}" data-song-id="${song.id}">
                 <div class="song-item-info">
                     <div class="song-item-title">${this.escapeHtml(
 											song.name
@@ -700,7 +704,14 @@ class MusicPlayer {
 		document.querySelectorAll('.song-item').forEach(item => {
 			item.addEventListener('click', e => {
 				if (!e.target.classList.contains('delete-btn')) {
-					this.playSongAtIndex(parseInt(item.dataset.index))
+					// Find the song ID and play by finding its index in the full playlist
+					const songId = parseInt(item.dataset.songId)
+					const fullPlaylistIndex = this.allSongs.findIndex(
+						s => s.id === songId
+					)
+					if (fullPlaylistIndex !== -1) {
+						this.playSongAtIndex(fullPlaylistIndex)
+					}
 				}
 			})
 		})
@@ -796,7 +807,8 @@ class MusicPlayer {
 	}
 
 	async playSongAtIndex(index) {
-		if (index < 0 || index >= this.playlist.length) return
+		// Always use the full playlist (allSongs), not the filtered one
+		if (index < 0 || index >= this.allSongs.length) return
 
 		// Flag that we're changing tracks (prevents auto-resume interference)
 		this.isChangingTrack = true
@@ -807,7 +819,7 @@ class MusicPlayer {
 		this.videoDisplay.pause()
 
 		this.currentIndex = index
-		const song = this.playlist[index]
+		const song = this.allSongs[index]
 
 		try {
 			const songData = await this.db.getSong(song.id)
@@ -926,7 +938,7 @@ class MusicPlayer {
 	}
 
 	async togglePlay() {
-		if (this.playlist.length === 0) {
+		if (this.allSongs.length === 0) {
 			alert(
 				currentLang === 'ru'
 					? 'Пожалуйста, сначала добавьте треки!'
@@ -968,15 +980,15 @@ class MusicPlayer {
 	}
 
 	async playNext() {
-		if (this.playlist.length === 0) return
-		this.currentIndex = (this.currentIndex + 1) % this.playlist.length
+		if (this.allSongs.length === 0) return
+		this.currentIndex = (this.currentIndex + 1) % this.allSongs.length
 		await this.playSongAtIndex(this.currentIndex)
 	}
 
 	async playPrevious() {
-		if (this.playlist.length === 0) return
+		if (this.allSongs.length === 0) return
 		this.currentIndex =
-			(this.currentIndex - 1 + this.playlist.length) % this.playlist.length
+			(this.currentIndex - 1 + this.allSongs.length) % this.allSongs.length
 		await this.playSongAtIndex(this.currentIndex)
 	}
 
@@ -1022,7 +1034,8 @@ class MusicPlayer {
 	}
 
 	updateSongCount() {
-		this.songCount.textContent = this.playlist.length
+		// Show total count, not filtered count
+		this.songCount.textContent = this.allSongs.length
 	}
 
 	async showStorageInfo() {
