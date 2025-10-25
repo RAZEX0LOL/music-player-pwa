@@ -50,13 +50,13 @@
 
 ## 🎵 How to Add Music
 
-### Method 1: "Add Songs" Button (requires internet)
+### Method 1: "Add Tracks" Button (requires internet)
 
 1. **Connect to the internet** (WiFi or mobile data)
-2. Click the **"📁 Add Songs"** button
+2. Click the **"📁 Add Tracks"** button
 3. Select one or more audio files
 4. Wait for the files to upload
-5. Done! Songs added to your playlist
+5. Done! Tracks added to your playlist
 
 **Supported formats:**
 - 🎵 MP3
@@ -95,43 +95,43 @@
 
 **On Phone:**
 - **iPhone:** ❌ Drag & drop doesn't work (iOS limitation)
-  - Use the "📁 Add Songs" button instead
+  - Use the "📁 Add Tracks" button instead
 
 - **Android Phone:** ⚠️ Drag & drop is limited
-  - Use the "📁 Add Songs" button (easier and more reliable)
+  - Use the "📁 Add Tracks" button (easier and more reliable)
 
 ---
 
 ## ▶️ How to Play Music
 
 ### Playback:
-1. **Select a song** from the playlist (tap the song name)
-2. The song will start playing automatically
+1. **Select a track** from the playlist (tap the track name)
+2. The track will start playing automatically
 3. Or press the **▶️ (Play)** button at the bottom
 
 ### Controls:
-- **⏮️** - Previous song
+- **⏮️** - Previous track
 - **▶️ / ⏸️** - Play / Pause
-- **⏭️** - Next song
+- **⏭️** - Next track
 - **🔊 Slider** - Volume (0-100%)
 - **Progress bar** - Seek (drag left/right)
 
 ### Lock Screen Controls:
 
 **iPhone/iPad (iOS):**
-- ✅ Song title
+- ✅ Track title
 - ✅ Buttons: ⏮️ ▶️ ⏸️ ⏭️
 - ✅ Seek: ⏪ ⏩ (10 seconds)
 - ✅ Progress bar (draggable)
 
 **Android (Chrome, Samsung Internet):**
-- ✅ Song title
+- ✅ Track title
 - ✅ Buttons: ⏮️ ▶️ ⏸️ ⏭️
 - ✅ Seek: ⏪ ⏩
 - ✅ Progress bar
 
 **Android (Firefox):**
-- ✅ Song title
+- ✅ Track title
 - ✅ Buttons: ⏮️ ▶️ ⏸️ ⏭️
 - ⚠️ Seek may not work (Firefox limitation)
 
@@ -143,23 +143,23 @@
 
 ## 🗑️ How to Delete Music
 
-### Delete one song:
-1. Find the song in the playlist
+### Delete one track:
+1. Find the track in the playlist
 2. Tap **🗑️** (trash) on the right side
-3. Song deleted
+3. Track deleted
 
 ### Delete all:
 1. Click the **"🗑️ Clear All"** button at the top
 2. Confirm deletion
-3. All songs removed from storage
+3. All tracks removed from storage
 
 ---
 
 ## 📶 Offline Mode (without internet)
 
 ### How it works:
-1. **Add songs** (when you have internet)
-2. Songs are saved **in your device storage**
+1. **Add tracks** (when you have internet)
+2. Tracks are saved **in your device storage**
 3. Now you can **turn off internet**
 4. Music will play **completely offline!**
 
@@ -168,10 +168,10 @@
 **✅ Works on all devices offline:**
 - Listen to added music
 - Manage playlist (play, pause, seek)
-- Delete songs
+- Delete tracks
 - Change volume and playback order
 
-**Adding new songs offline:**
+**Adding new tracks offline:**
 
 | Device | Method | Works Offline? |
 |--------|--------|----------------|
@@ -216,8 +216,8 @@ The app **automatically requests MAXIMUM quota** on first launch using:
 - 📱 iPad with 128 GB: get **~1 GB** (iOS limit)
 
 ### Examples:
-- **1 MP3 song** (4 minutes) ≈ 3-5 MB
-- **100 songs** ≈ 300-500 MB
+- **1 MP3 track** (4 minutes) ≈ 3-5 MB
+- **100 tracks** ≈ 300-500 MB
 - **1 music video MP4** (4 minutes) ≈ 20-50 MB
 
 **Tip:** Use MP3 instead of MP4 - they take less space!
@@ -226,7 +226,7 @@ The app **automatically requests MAXIMUM quota** on first launch using:
 
 ## ❓ FAQ
 
-### Q: Why do I see an error when adding songs?
+### Q: Why do I see an error when adding tracks?
 **A:**
 1. Make sure you have **internet connection** (for first time adding)
 2. Clear playlist: **🗑️ Clear All**
@@ -240,7 +240,7 @@ The app **automatically requests MAXIMUM quota** on first launch using:
 1. Check volume in the app (🔊 slider)
 2. Check device volume
 3. On iPhone: check the mute switch (on the side)
-4. Try a different song
+4. Try a different track
 
 ---
 
@@ -252,7 +252,7 @@ The app **automatically requests MAXIMUM quota** on first launch using:
 
 ---
 
-### Q: Songs disappeared after closing the app
+### Q: Tracks disappeared after closing the app
 **A:**
 1. Don't use **Incognito/Private mode** - data isn't saved
 2. Don't clear browser/app data

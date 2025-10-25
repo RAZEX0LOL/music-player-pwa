@@ -12,10 +12,10 @@
     <br>
 
     <input type="file" id="testFile" accept="audio/*,video/mp4,.mp3,.mp4,.m4a">
-    <button onclick="testAddSong()">Test Add Song</button>
+    <button onclick="testAddTrack()">Test Add Track</button>
     <br><br>
 
-    <button onclick="testPlaySong()">Test Play Song</button>
+    <button onclick="testPlayTrack()">Test Play Track</button>
     <br><br>
 
     <video id="testPlayer" controls style="display: block; width: 300px;"></video>
@@ -25,7 +25,7 @@
 
     <script>
         let testDB = null;
-        let testSongId = null;
+        let testTrackId = null;
 
         function log(message) {
             const results = document.getElementById('results');
@@ -55,19 +55,19 @@
 
                 request.onupgradeneeded = (event) => {
                     const db = event.target.result;
-                    if (!db.objectStoreNames.contains('songs')) {
-                        db.createObjectStore('songs', { keyPath: 'id', autoIncrement: true });
+                    if (!db.objectStoreNames.contains('tracks')) {
+                        db.createObjectStore('tracks', { keyPath: 'id', autoIncrement: true });
                         log('✅ Object store created');
                     }
                 };
             });
         }
 
-        // Test adding song
-        async function testAddSong() {
+        // Test adding track
+        async function testAddTrack() {
             try {
-                setStatus('Testing add song...');
-                log('\n--- Testing Add Song ---');
+                setStatus('Testing add track...');
+                log('\n--- Testing Add Track ---');
 
                 const fileInput = document.getElementById('testFile');
                 if (!fileInput.files || fileInput.files.length === 0) {
@@ -94,22 +94,22 @@
 
                 // Store in IndexedDB
                 log('Storing in IndexedDB...');
-                const transaction = testDB.transaction(['songs'], 'readwrite');
-                const store = transaction.objectStore('songs');
+                const transaction = testDB.transaction(['tracks'], 'readwrite');
+                const store = transaction.objectStore('tracks');
 
-                const song = {
+                const track = {
                     name: file.name,
                     blob: blob,
                     type: file.type,
                     size: file.size
                 };
 
-                const request = store.add(song);
+                const request = store.add(track);
 
                 request.onsuccess = () => {
-                    testSongId = request.result;
-                    log('✅ Song stored successfully! ID: ' + testSongId);
-                    setStatus('Song added successfully!');
+                    testTrackId = request.result;
+                    log('✅ Track stored successfully! ID: ' + testTrackId);
+                    setStatus('Track added successfully!');
                 };
 
                 request.onerror = () => {
@@ -123,29 +123,29 @@
             }
         }
 
-        // Test playing song
-        async function testPlaySong() {
+        // Test playing track
+        async function testPlayTrack() {
             try {
                 setStatus('Testing playback...');
                 log('\n--- Testing Playback ---');
 
-                if (!testDB || !testSongId) {
-                    log('❌ No song to play. Add a song first.');
+                if (!testDB || !testTrackId) {
+                    log('❌ No track to play. Add a track first.');
                     return;
                 }
 
-                const transaction = testDB.transaction(['songs'], 'readonly');
-                const store = transaction.objectStore('songs');
-                const request = store.get(testSongId);
+                const transaction = testDB.transaction(['tracks'], 'readonly');
+                const store = transaction.objectStore('tracks');
+                const request = store.get(testTrackId);
 
                 request.onsuccess = async () => {
-                    const songData = request.result;
-                    log('✅ Song retrieved from DB');
-                    log('Song name: ' + songData.name);
-                    log('Blob size: ' + songData.blob.size);
-                    log('Blob type: ' + songData.blob.type);
+                    const trackData = request.result;
+                    log('✅ Track retrieved from DB');
+                    log('Track name: ' + trackData.name);
+                    log('Blob size: ' + trackData.blob.size);
+                    log('Blob type: ' + trackData.blob.type);
 
-                    const url = URL.createObjectURL(songData.blob);
+                    const url = URL.createObjectURL(trackData.blob);
                     log('✅ Object URL created: ' + url.substring(0, 50) + '...');
 
                     const player = document.getElementById('testPlayer');

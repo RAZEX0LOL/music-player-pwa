@@ -22,8 +22,8 @@ class MusicDB {
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
 
-                if (!db.objectStoreNames.contains('songs')) {
-                    const objectStore = db.createObjectStore('songs', { keyPath: 'id', autoIncrement: true });
+                if (!db.objectStoreNames.contains('tracks')) {
+                    const objectStore = db.createObjectStore('tracks', { keyPath: 'id', autoIncrement: true });
                     objectStore.createIndex('name', 'name', { unique: false });
                     objectStore.createIndex('addedDate', 'addedDate', { unique: false });
                 }
@@ -93,11 +93,11 @@ class MusicDB {
                 console.log(`   Usage: ${percentUsed}%`);
                 console.log('═══════════════════════════════════════');
 
-                // Estimate how many songs can fit
-                const avgSongSizeMB = 4; // Average MP3 song ~4MB
+                // Estimate how many tracks can fit
+                const avgTrackSizeMB = 4; // Average MP3 track ~4MB
                 const availableSpace = estimate.quota - estimate.usage;
-                const estimatedSongs = Math.floor(availableSpace / (avgSongSizeMB * 1024 * 1024));
-                console.log(`🎵 Estimated capacity: ~${estimatedSongs.toLocaleString()} songs (${avgSongSizeMB}MB each)`);
+                const estimatedTracks = Math.floor(availableSpace / (avgTrackSizeMB * 1024 * 1024));
+                console.log(`🎵 Estimated capacity: ~${estimatedTracks.toLocaleString()} tracks (${avgTrackSizeMB}MB each)`);
                 console.log('═══════════════════════════════════════');
 
             } catch (error) {
@@ -127,17 +127,17 @@ class MusicDB {
         }
     }
 
-    async addSong(file) {
+    async addTrack(file) {
         // Convert File to ArrayBuffer BEFORE creating transaction
         // (to avoid transaction timeout)
         // Store ArrayBuffer instead of Blob/File for maximum compatibility
         const arrayBuffer = await file.arrayBuffer();
 
         // NOW create transaction after async work is done
-        const transaction = this.db.transaction(['songs'], 'readwrite');
-        const store = transaction.objectStore('songs');
+        const transaction = this.db.transaction(['tracks'], 'readwrite');
+        const store = transaction.objectStore('tracks');
 
-        const song = {
+        const track = {
             name: file.name,
             arrayBuffer: arrayBuffer,  // Store raw ArrayBuffer (most compatible)
             size: file.size,
@@ -146,15 +146,15 @@ class MusicDB {
         };
 
         return new Promise((resolve, reject) => {
-            const request = store.add(song);
+            const request = store.add(track);
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
         });
     }
 
-    async getAllSongs() {
-        const transaction = this.db.transaction(['songs'], 'readonly');
-        const store = transaction.objectStore('songs');
+    async getAllTracks() {
+        const transaction = this.db.transaction(['tracks'], 'readonly');
+        const store = transaction.objectStore('tracks');
 
         return new Promise((resolve, reject) => {
             const request = store.getAll();
@@ -163,9 +163,9 @@ class MusicDB {
         });
     }
 
-    async getSong(id) {
-        const transaction = this.db.transaction(['songs'], 'readonly');
-        const store = transaction.objectStore('songs');
+    async getTrack(id) {
+        const transaction = this.db.transaction(['tracks'], 'readonly');
+        const store = transaction.objectStore('tracks');
 
         return new Promise((resolve, reject) => {
             const request = store.get(id);
@@ -174,9 +174,9 @@ class MusicDB {
         });
     }
 
-    async deleteSong(id) {
-        const transaction = this.db.transaction(['songs'], 'readwrite');
-        const store = transaction.objectStore('songs');
+    async deleteTrack(id) {
+        const transaction = this.db.transaction(['tracks'], 'readwrite');
+        const store = transaction.objectStore('tracks');
 
         return new Promise((resolve, reject) => {
             const request = store.delete(id);
@@ -186,8 +186,8 @@ class MusicDB {
     }
 
     async clearAll() {
-        const transaction = this.db.transaction(['songs'], 'readwrite');
-        const store = transaction.objectStore('songs');
+        const transaction = this.db.transaction(['tracks'], 'readwrite');
+        const store = transaction.objectStore('tracks');
 
         return new Promise((resolve, reject) => {
             const request = store.clear();
@@ -219,14 +219,14 @@ class MusicPlayer {
         this.volumeBar = document.getElementById('volumeBar');
         this.currentTimeEl = document.getElementById('currentTime');
         this.durationEl = document.getElementById('duration');
-        this.songList = document.getElementById('songList');
+        this.trackList = document.getElementById('trackList');
         this.fileInput = document.getElementById('fileInput');
-        this.addSongsBtn = document.getElementById('addSongsBtn');
+        this.addTracksBtn = document.getElementById('addTracksBtn');
         this.clearAllBtn = document.getElementById('clearAllBtn');
-        this.currentSongTitle = document.getElementById('currentSongTitle');
-        this.currentSongArtist = document.getElementById('currentSongArtist');
+        this.currentTrackTitle = document.getElementById('currentTrackTitle');
+        this.currentTrackArtist = document.getElementById('currentTrackArtist');
         this.vinylDisc = document.getElementById('vinylDisc');
-        this.songCount = document.getElementById('songCount');
+        this.trackCount = document.getElementById('trackCount');
         this.statusIndicator = document.getElementById('statusIndicator');
         this.statusText = document.getElementById('statusText');
     }
@@ -237,9 +237,9 @@ class MusicPlayer {
         this.nextBtn.addEventListener('click', () => this.playNext());
         this.progressBar.addEventListener('input', (e) => this.seek(e.target.value));
         this.volumeBar.addEventListener('input', (e) => this.setVolume(e.target.value));
-        this.addSongsBtn.addEventListener('click', () => this.handleAddSongsClick());
+        this.addTracksBtn.addEventListener('click', () => this.handleAddTracksClick());
         this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
-        this.clearAllBtn.addEventListener('click', () => this.clearAllSongs());
+        this.clearAllBtn.addEventListener('click', () => this.clearAllTracks());
 
         this.audio.addEventListener('timeupdate', () => this.updateProgress());
         this.audio.addEventListener('loadedmetadata', () => this.updateDuration());
@@ -284,7 +284,7 @@ class MusicPlayer {
         this.statusText.textContent = isOnline ? 'Онлайн' : 'Офлайн - Работает без интернета!';
     }
 
-    handleAddSongsClick() {
+    handleAddTracksClick() {
         // Try to open file picker
         // Note: iOS Safari may block this in offline PWA mode
         // In that case, users can use drag-and-drop instead
@@ -292,7 +292,7 @@ class MusicPlayer {
             this.fileInput.click();
         } catch (error) {
             console.error('File picker error:', error);
-            alert('Используйте перетаскивание файлов (drag & drop) для добавления песен офлайн');
+            alert('Используйте перетаскивание файлов (drag & drop) для добавления треков офлайн');
         }
     }
 
@@ -300,24 +300,24 @@ class MusicPlayer {
         const files = Array.from(event.target.files);
         if (files.length === 0) return;
 
-        this.statusText.textContent = `Добавление ${files.length} песен...`;
+        this.statusText.textContent = `Добавление ${files.length} треков...`;
 
         try {
             for (const file of files) {
-                await this.db.addSong(file);
+                await this.db.addTrack(file);
             }
 
             await this.loadPlaylist();
-            this.statusText.textContent = `Добавлено ${files.length} песен!`;
+            this.statusText.textContent = `Добавлено ${files.length} треков!`;
 
-            // Show storage info after adding songs
+            // Show storage info after adding tracks
             this.showStorageInfo();
 
             setTimeout(() => {
                 this.updateOnlineStatus(navigator.onLine);
             }, 2000);
         } catch (error) {
-            console.error('Error adding songs:', error);
+            console.error('Error adding tracks:', error);
             this.statusText.textContent = 'Ошибка добавления: ' + error.message;
             setTimeout(() => {
                 this.updateOnlineStatus(navigator.onLine);
@@ -329,9 +329,9 @@ class MusicPlayer {
 
     async loadPlaylist() {
         try {
-            this.playlist = await this.db.getAllSongs();
+            this.playlist = await this.db.getAllTracks();
             this.renderPlaylist();
-            this.updateSongCount();
+            this.updateTrackCount();
         } catch (error) {
             console.error('Error loading playlist:', error);
         }
@@ -339,29 +339,29 @@ class MusicPlayer {
 
     renderPlaylist() {
         if (this.playlist.length === 0) {
-            this.songList.innerHTML = `
+            this.trackList.innerHTML = `
                 <div class="empty-state">
-                    <p>Пока нет песен</p>
-                    <p class="hint">Добавьте песни для начала работы!</p>
+                    <p>Пока нет треков</p>
+                    <p class="hint">Добавьте треки для начала работы!</p>
                 </div>
             `;
             return;
         }
 
-        this.songList.innerHTML = this.playlist.map((song, index) => `
-            <div class="song-item ${index === this.currentIndex ? 'active' : ''}" data-index="${index}">
-                <div class="song-item-info">
-                    <div class="song-item-title">${this.escapeHtml(song.name)}</div>
-                    <div class="song-item-duration">${this.formatFileSize(song.size)}</div>
+        this.trackList.innerHTML = this.playlist.map((track, index) => `
+            <div class="track-item ${index === this.currentIndex ? 'active' : ''}" data-index="${index}">
+                <div class="track-item-info">
+                    <div class="track-item-title">${this.escapeHtml(track.name)}</div>
+                    <div class="track-item-duration">${this.formatFileSize(track.size)}</div>
                 </div>
-                <button class="delete-btn" data-id="${song.id}" onclick="event.stopPropagation()">🗑️</button>
+                <button class="delete-btn" data-id="${track.id}" onclick="event.stopPropagation()">🗑️</button>
             </div>
         `).join('');
 
-        document.querySelectorAll('.song-item').forEach(item => {
+        document.querySelectorAll('.track-item').forEach(item => {
             item.addEventListener('click', (e) => {
                 if (!e.target.classList.contains('delete-btn')) {
-                    this.playSongAtIndex(parseInt(item.dataset.index));
+                    this.playTrackAtIndex(parseInt(item.dataset.index));
                 }
             });
         });
@@ -370,14 +370,14 @@ class MusicPlayer {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const id = parseInt(btn.dataset.id);
-                await this.deleteSong(id);
+                await this.deleteTrack(id);
             });
         });
     }
 
-    async deleteSong(id) {
+    async deleteTrack(id) {
         try {
-            await this.db.deleteSong(id);
+            await this.db.deleteTrack(id);
 
             const wasPlaying = this.isPlaying;
             const deletedIndex = this.playlist.findIndex(s => s.id === id);
@@ -393,23 +393,23 @@ class MusicPlayer {
             if (this.playlist.length > 0 && deletedIndex === this.currentIndex) {
                 this.currentIndex = Math.min(this.currentIndex, this.playlist.length - 1);
                 if (wasPlaying) {
-                    await this.playSongAtIndex(this.currentIndex);
+                    await this.playTrackAtIndex(this.currentIndex);
                 }
             } else if (deletedIndex < this.currentIndex) {
                 this.currentIndex--;
             }
 
-            this.statusText.textContent = 'Песня удалена';
+            this.statusText.textContent = 'Трек удалён';
             setTimeout(() => {
                 this.updateOnlineStatus(navigator.onLine);
             }, 2000);
         } catch (error) {
-            console.error('Error deleting song:', error);
+            console.error('Error deleting track:', error);
         }
     }
 
-    async clearAllSongs() {
-        if (!confirm('Вы уверены, что хотите удалить все песни?')) return;
+    async clearAllTracks() {
+        if (!confirm('Вы уверены, что хотите удалить все треки?')) return;
 
         try {
             this.audio.pause();
@@ -420,39 +420,39 @@ class MusicPlayer {
             await this.loadPlaylist();
 
             this.currentIndex = 0;
-            this.currentSongTitle.textContent = 'Песня не играет';
-            this.currentSongArtist.textContent = 'Выберите песню для начала';
+            this.currentTrackTitle.textContent = 'Трек не играет';
+            this.currentTrackArtist.textContent = 'Выберите трек для начала';
             this.vinylDisc.classList.remove('spinning');
 
-            this.statusText.textContent = 'Все песни удалены';
+            this.statusText.textContent = 'Все треки удалены';
             setTimeout(() => {
                 this.updateOnlineStatus(navigator.onLine);
             }, 2000);
         } catch (error) {
-            console.error('Error clearing songs:', error);
+            console.error('Error clearing tracks:', error);
         }
     }
 
-    async playSongAtIndex(index) {
+    async playTrackAtIndex(index) {
         if (index < 0 || index >= this.playlist.length) return;
 
         this.currentIndex = index;
-        const song = this.playlist[index];
+        const track = this.playlist[index];
 
         try {
-            const songData = await this.db.getSong(song.id);
+            const trackData = await this.db.getTrack(track.id);
 
             // Recreate Blob from stored data (supports multiple storage formats)
             let fileBlob;
-            if (songData.arrayBuffer) {
+            if (trackData.arrayBuffer) {
                 // New format: ArrayBuffer (most compatible)
-                fileBlob = new Blob([songData.arrayBuffer], { type: songData.type });
-            } else if (songData.blob) {
+                fileBlob = new Blob([trackData.arrayBuffer], { type: trackData.type });
+            } else if (trackData.blob) {
                 // Old format: Blob
-                fileBlob = songData.blob;
-            } else if (songData.file) {
+                fileBlob = trackData.blob;
+            } else if (trackData.file) {
                 // Oldest format: File
-                fileBlob = songData.file;
+                fileBlob = trackData.file;
             }
 
             const url = URL.createObjectURL(fileBlob);
@@ -470,25 +470,25 @@ class MusicPlayer {
             }
 
             this.updatePlayButton();
-            this.updateNowPlaying(song.name);
+            this.updateNowPlaying(track.name);
             this.vinylDisc.classList.add('spinning');
             this.renderPlaylist();
-            this.updateMediaSession(song.name);
+            this.updateMediaSession(track.name);
             this.updateMediaSessionPositionState();
         } catch (error) {
-            console.error('Error playing song:', error);
+            console.error('Error playing track:', error);
             this.statusText.textContent = 'Ошибка воспроизведения: ' + error.message;
         }
     }
 
     async togglePlay() {
         if (this.playlist.length === 0) {
-            alert('Пожалуйста, сначала добавьте песни!');
+            alert('Пожалуйста, сначала добавьте треки!');
             return;
         }
 
         if (this.audio.src === '') {
-            await this.playSongAtIndex(0);
+            await this.playTrackAtIndex(0);
             return;
         }
 
@@ -507,23 +507,23 @@ class MusicPlayer {
     async playNext() {
         if (this.playlist.length === 0) return;
         this.currentIndex = (this.currentIndex + 1) % this.playlist.length;
-        await this.playSongAtIndex(this.currentIndex);
+        await this.playTrackAtIndex(this.currentIndex);
     }
 
     async playPrevious() {
         if (this.playlist.length === 0) return;
         this.currentIndex = (this.currentIndex - 1 + this.playlist.length) % this.playlist.length;
-        await this.playSongAtIndex(this.currentIndex);
+        await this.playTrackAtIndex(this.currentIndex);
     }
 
     updatePlayButton() {
         this.playPauseBtn.textContent = this.isPlaying ? '⏸️' : '▶️';
     }
 
-    updateNowPlaying(songName) {
-        const name = songName.replace(/\.[^/.]+$/, '');
-        this.currentSongTitle.textContent = name;
-        this.currentSongArtist.textContent = 'Сейчас играет';
+    updateNowPlaying(trackName) {
+        const name = trackName.replace(/\.[^/.]+$/, '');
+        this.currentTrackTitle.textContent = name;
+        this.currentTrackArtist.textContent = 'Сейчас играет';
     }
 
     updateProgress() {
@@ -552,8 +552,8 @@ class MusicPlayer {
         this.audio.volume = value / 100;
     }
 
-    updateSongCount() {
-        this.songCount.textContent = this.playlist.length;
+    updateTrackCount() {
+        this.trackCount.textContent = this.playlist.length;
     }
 
     async showStorageInfo() {
@@ -594,10 +594,10 @@ class MusicPlayer {
         return div.innerHTML;
     }
 
-    updateMediaSession(songName) {
+    updateMediaSession(trackName) {
         if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
-                title: songName.replace(/\.[^/.]+$/, ''),
+                title: trackName.replace(/\.[^/.]+$/, ''),
                 artist: 'Моя Музыка',
                 album: 'Офлайн Музыкальный Плеер'
             });
@@ -683,21 +683,21 @@ class MusicPlayer {
             return;
         }
 
-        this.statusText.textContent = `Добавление ${files.length} песен...`;
+        this.statusText.textContent = `Добавление ${files.length} треков...`;
 
         try {
             for (const file of files) {
-                await this.db.addSong(file);
+                await this.db.addTrack(file);
             }
 
             await this.loadPlaylist();
-            this.statusText.textContent = `Добавлено ${files.length} песен!`;
+            this.statusText.textContent = `Добавлено ${files.length} треков!`;
             setTimeout(() => {
                 this.updateOnlineStatus(navigator.onLine);
             }, 2000);
         } catch (error) {
-            console.error('Error adding songs via drag and drop:', error);
-            this.statusText.textContent = 'Ошибка добавления песен';
+            console.error('Error adding tracks via drag and drop:', error);
+            this.statusText.textContent = 'Ошибка добавления треков';
         }
     }
 }
