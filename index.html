@@ -29,15 +29,29 @@
 
         <div class="add-tracks-section">
             <input type="file" id="fileInput" accept="audio/*,video/mp4,video/x-m4v,.mp3,.wav,.ogg,.m4a,.flac,.mp4,.m4v,.aac,.wma,.webm" multiple hidden>
-            <button id="addTracksBtn" class="btn-primary">
+            <input type="file" id="importFileInput" accept=".json" hidden>
+            <button id="addTracksBtn" class="btn-primary" aria-label="Add audio tracks">
                 <span>📁 Добавить треки</span>
             </button>
-            <button id="clearAllBtn" class="btn-danger">
+            <button id="clearAllBtn" class="btn-danger" aria-label="Clear all tracks">
                 <span>🗑️ Очистить всё</span>
             </button>
             <p style="font-size: 0.85em; color: rgba(255,255,255,0.6); margin-top: 8px; text-align: center;">
                 Или перетащите аудио/видео файлы в окно (работает офлайн!)
             </p>
+        </div>
+
+        <!-- Search and Controls -->
+        <div class="search-controls">
+            <input type="search" id="searchInput" class="search-input" placeholder="🔍 Поиск треков... / Search tracks..." aria-label="Search tracks">
+            <div class="control-buttons">
+                <button id="shuffleBtn" class="control-icon-btn" title="Shuffle (S)" aria-label="Toggle shuffle mode">🔀</button>
+                <button id="repeatBtn" class="control-icon-btn" title="Repeat (R)" aria-label="Cycle repeat mode">🔁</button>
+                <button id="speedBtn" class="control-icon-btn" title="Playback speed" aria-label="Change playback speed">1x</button>
+                <button id="sleepTimerBtn" class="control-icon-btn" title="Sleep timer" aria-label="Set sleep timer">⏰</button>
+                <button id="exportBtn" class="control-icon-btn" title="Export playlist" aria-label="Export playlist to JSON">💾</button>
+                <button id="importBtn" class="control-icon-btn" title="Import playlist" aria-label="Import playlist from JSON">📥</button>
+            </div>
         </div>
 
         <div class="now-playing">
@@ -54,20 +68,20 @@
 
         <div class="player-controls">
             <div class="progress-container">
-                <span id="currentTime">0:00</span>
-                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0">
-                <span id="duration">0:00</span>
+                <span id="currentTime" aria-label="Current time">0:00</span>
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" aria-label="Seek progress bar" role="slider">
+                <span id="duration" aria-label="Duration">0:00</span>
             </div>
 
             <div class="controls">
-                <button id="prevBtn" class="control-btn">⏮️</button>
-                <button id="playPauseBtn" class="control-btn play-btn">▶️</button>
-                <button id="nextBtn" class="control-btn">⏭️</button>
+                <button id="prevBtn" class="control-btn" aria-label="Previous track (Left arrow)" title="Previous (←)">⏮️</button>
+                <button id="playPauseBtn" class="control-btn play-btn" aria-label="Play or Pause (Spacebar)" title="Play/Pause (Space)">▶️</button>
+                <button id="nextBtn" class="control-btn" aria-label="Next track (Right arrow)" title="Next (→)">⏭️</button>
             </div>
 
             <div class="volume-control">
-                <span>🔊</span>
-                <input type="range" id="volumeBar" class="volume-bar" min="0" max="100" value="70">
+                <span aria-hidden="true">🔊</span>
+                <input type="range" id="volumeBar" class="volume-bar" min="0" max="100" value="70" aria-label="Volume control" role="slider">
             </div>
         </div>
 
@@ -126,6 +140,29 @@
                 <h3>🎼 Форматы / Formats</h3>
                 <p>✅ MP3, WAV, OGG, FLAC, M4A, AAC</p>
                 <p>✅ MP4, M4V (видео - только звук / video - audio only)</p>
+            </div>
+
+            <div class="help-section">
+                <h3>⌨️ Горячие клавиши / Keyboard Shortcuts</h3>
+                <p><strong>Пробел / Space</strong> - Играть/Пауза / Play/Pause</p>
+                <p><strong>→ Стрелка вправо / Right Arrow</strong> - След. трек / Next track</p>
+                <p><strong>← Стрелка влево / Left Arrow</strong> - Пред. трек / Previous track</p>
+                <p><strong>Shift + →</strong> - Вперёд 10с / Skip forward 10s</p>
+                <p><strong>Shift + ←</strong> - Назад 10с / Skip backward 10s</p>
+                <p><strong>↑ / ↓</strong> - Громкость / Volume up/down</p>
+                <p><strong>M</strong> - Выкл. звук / Mute</p>
+                <p><strong>S</strong> - Перемешивание / Shuffle</p>
+                <p><strong>R</strong> - Повтор / Repeat</p>
+            </div>
+
+            <div class="help-section">
+                <h3>✨ Новые функции / New Features</h3>
+                <p>🔀 <strong>Перемешивание</strong> - Случайный порядок / Random playback</p>
+                <p>🔁 <strong>Повтор</strong> - Одного трека или всех / Repeat one or all</p>
+                <p>🔍 <strong>Поиск</strong> - Быстрый поиск по названию / Quick search</p>
+                <p>💾 <strong>Экспорт</strong> - Сохранить плейлист / Save playlist</p>
+                <p>⏰ <strong>Таймер сна</strong> - Автостоп / Auto stop</p>
+                <p>⚡ <strong>Скорость</strong> - 0.5x до 2x / 0.5x to 2x speed</p>
             </div>
 
             <div class="help-section">

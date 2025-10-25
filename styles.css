@@ -51,8 +51,73 @@ header h1 {
 
 .add-tracks-section {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
+    margin-bottom: 20px;
+}
+
+/* Search and Controls Section */
+.search-controls {
     margin-bottom: 30px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    font-size: 1em;
+    margin-bottom: 10px;
+    transition: all 0.3s ease;
+}
+
+.search-input:focus {
+    outline: 2px solid #667eea;
+    background: rgba(255,255,255,0.15);
+}
+
+.search-input::placeholder {
+    color: rgba(255,255,255,0.5);
+}
+
+.control-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.control-icon-btn {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.control-icon-btn:hover {
+    background: rgba(255,255,255,0.2);
+    transform: translateY(-2px);
+}
+
+.control-icon-btn:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+.control-icon-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .btn-primary, .btn-danger {
@@ -76,6 +141,11 @@ header h1 {
     box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
 }
 
+.btn-primary:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
 .btn-danger {
     background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
     color: white;
@@ -86,13 +156,24 @@ header h1 {
     box-shadow: 0 8px 20px rgba(231, 76, 60, 0.4);
 }
 
+.btn-danger:focus {
+    outline: 2px solid #e74c3c;
+    outline-offset: 2px;
+}
+
 .now-playing {
-    background: rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.15); /* Fallback for Firefox */
     border-radius: 20px;
     padding: 30px;
     margin-bottom: 30px;
-    backdrop-filter: blur(10px);
     box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+
+@supports (backdrop-filter: blur(10px)) {
+    .now-playing {
+        background: rgba(255,255,255,0.05);
+        backdrop-filter: blur(10px);
+    }
 }
 
 .album-art {
@@ -147,11 +228,17 @@ header h1 {
 }
 
 .player-controls {
-    background: rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.15); /* Fallback for Firefox */
     border-radius: 20px;
     padding: 25px;
     margin-bottom: 30px;
-    backdrop-filter: blur(10px);
+}
+
+@supports (backdrop-filter: blur(10px)) {
+    .player-controls {
+        background: rgba(255,255,255,0.05);
+        backdrop-filter: blur(10px);
+    }
 }
 
 .progress-container {
@@ -220,6 +307,11 @@ header h1 {
     transform: scale(1.1);
 }
 
+.control-btn:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
 .play-btn {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     width: 70px;
@@ -242,10 +334,16 @@ header h1 {
 }
 
 .playlist {
-    background: rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.15); /* Fallback for Firefox */
     border-radius: 20px;
     padding: 25px;
-    backdrop-filter: blur(10px);
+}
+
+@supports (backdrop-filter: blur(10px)) {
+    .playlist {
+        background: rgba(255,255,255,0.05);
+        backdrop-filter: blur(10px);
+    }
 }
 
 .playlist h3 {
@@ -572,5 +670,91 @@ body.drag-over::before {
     pointer-events: none;
     text-align: center;
     padding: 20px;
-    backdrop-filter: blur(10px);
+}
+
+@supports (backdrop-filter: blur(10px)) {
+    body.drag-over::before {
+        backdrop-filter: blur(10px);
+    }
+}
+
+/* Toast Notifications */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 16px 24px;
+    border-radius: 12px;
+    color: white;
+    font-weight: 500;
+    font-size: 0.95em;
+    z-index: 10001;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    transform: translateX(400px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    max-width: 350px;
+    word-wrap: break-word;
+}
+
+.toast.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.toast-success {
+    background: linear-gradient(135deg, #4ecca3 0%, #45b393 100%);
+}
+
+.toast-error {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+}
+
+.toast-warning {
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+}
+
+.toast-info {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Improved modal backdrop */
+@supports (backdrop-filter: blur(5px)) {
+    .modal {
+        backdrop-filter: blur(5px);
+    }
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+@supports (backdrop-filter: blur(10px)) {
+    .modal-content {
+        backdrop-filter: blur(10px);
+    }
+}
+
+/* Accessibility improvements */
+*:focus-visible {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+button:focus-visible {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* Better keyboard navigation */
+.track-item:focus-within {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .btn-primary, .btn-danger, .control-icon-btn {
+        border: 2px solid currentColor;
+    }
 }
