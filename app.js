@@ -551,6 +551,7 @@ class MusicPlayer {
         this.castSession = null;
         this.castPlayer = null;
         this.isCasting = false;
+        this.castBlobUrl = null; // Track Cast blob URL for cleanup
 
         this.initElements();
         this.initEventListeners();
@@ -624,6 +625,10 @@ class MusicPlayer {
             if ('mediaSession' in navigator) {
                 navigator.mediaSession.playbackState = 'playing';
             }
+            // Resume AudioContext if suspended (for lock screen playback)
+            if (this.audioContext && this.audioContext.state === 'suspended') {
+                this.audioContext.resume().catch(err => console.log('AudioContext resume failed:', err));
+            }
         });
 
         this.audio.addEventListener('pause', () => {
@@ -636,6 +641,20 @@ class MusicPlayer {
 
         window.addEventListener('online', () => this.updateOnlineStatus(true));
         window.addEventListener('offline', () => this.updateOnlineStatus(false));
+
+        // Keep AudioContext active for background/lock screen playback
+        document.addEventListener('visibilitychange', () => {
+            if (this.audioContext && this.audioContext.state === 'suspended' && !document.hidden) {
+                this.audioContext.resume();
+            }
+        });
+
+        // Resume AudioContext when page becomes active (for lock screen)
+        window.addEventListener('focus', () => {
+            if (this.audioContext && this.audioContext.state === 'suspended') {
+                this.audioContext.resume();
+            }
+        });
 
         // New feature event listeners
         if (this.shuffleBtn) {
@@ -711,7 +730,7 @@ class MusicPlayer {
             this.updateOnlineStatus(navigator.onLine);
             this.registerServiceWorker();
             this.initTheme();
-            this.setupVisualizer();
+            // Don't setup visualizer until needed - prevents AudioContext suspension on lock screen
             this.initCast();
         } catch (error) {
             console.error('Initialization error:', error);
@@ -886,7 +905,10 @@ class MusicPlayer {
         document.querySelectorAll('.track-item').forEach(item => {
             item.addEventListener('click', (e) => {
                 if (!e.target.classList.contains('delete-btn')) {
-                    this.playTrackAtIndex(parseInt(item.dataset.index));
+                    const index = parseInt(item.dataset.index);
+                    if (!isNaN(index) && index >= 0) {
+                        this.playTrackAtIndex(index);
+                    }
                 }
             });
         });
@@ -895,12 +917,15 @@ class MusicPlayer {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const id = parseInt(btn.dataset.id);
-                await this.deleteTrack(id);
+                if (!isNaN(id)) {
+                    await this.deleteTrack(id);
+                }
             });
         });
     }
 
     async deleteTrack(id) {
+        const i18n = I18N[this.lang];
         try {
             await this.db.deleteTrack(id);
 
@@ -923,17 +948,20 @@ class MusicPlayer {
                 this.currentIndex--;
             }
 
-            this.statusText.textContent = 'Трек удалён';
+            this.statusText.textContent = i18n.trackDeleted;
+            ErrorHandler.notify(i18n.trackDeleted, null, 'success');
             setTimeout(() => {
                 this.updateOnlineStatus(navigator.onLine);
             }, 2000);
         } catch (error) {
             console.error('Error deleting track:', error);
+            ErrorHandler.notify('Error deleting track', error);
         }
     }
 
     async clearAllTracks() {
-        if (!confirm('Вы уверены, что хотите удалить все треки?')) return;
+        const i18n = I18N[this.lang];
+        if (!confirm(i18n.confirmClearAll)) return;
 
         try {
             this.audio.pause();
@@ -943,16 +971,18 @@ class MusicPlayer {
             await this.loadPlaylist();
 
             this.currentIndex = 0;
-            this.currentTrackTitle.textContent = 'Трек не играет';
-            this.currentTrackArtist.textContent = 'Выберите трек для начала';
+            this.currentTrackTitle.textContent = i18n.noTrackPlaying;
+            this.currentTrackArtist.textContent = i18n.selectTrack;
             this.vinylDisc.classList.remove('spinning');
 
-            this.statusText.textContent = 'Все треки удалены';
+            this.statusText.textContent = i18n.allTracksDeleted;
+            ErrorHandler.notify(i18n.allTracksDeleted, null, 'success');
             setTimeout(() => {
                 this.updateOnlineStatus(navigator.onLine);
             }, 2000);
         } catch (error) {
             console.error('Error clearing tracks:', error);
+            ErrorHandler.notify('Error clearing tracks', error);
         }
     }
 
@@ -1012,8 +1042,9 @@ class MusicPlayer {
     }
 
     async togglePlay() {
+        const i18n = I18N[this.lang];
         if (this.playlist.length === 0) {
-            alert('Пожалуйста, сначала добавьте треки!');
+            ErrorHandler.notify(i18n.addTracksFirst, null, 'warning');
             return;
         }
 
@@ -1671,12 +1702,15 @@ class MusicPlayer {
     drawVisualizer() {
         if (!this.visualizerActive || !this.analyser || !this.visualizerCanvas) return;
 
-        const canvas = this.visualizerCanvas;
-        const ctx = canvas.getContext('2d');
-        const WIDTH = canvas.width;
-        const HEIGHT = canvas.height;
+        try {
+            const canvas = this.visualizerCanvas;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return; // Safety check
 
-        this.analyser.getByteFrequencyData(this.dataArray);
+            const WIDTH = canvas.width;
+            const HEIGHT = canvas.height;
+
+            this.analyser.getByteFrequencyData(this.dataArray);
 
         // Create dark gradient background
         const bgGradient = ctx.createLinearGradient(0, 0, 0, HEIGHT);
@@ -1732,12 +1766,17 @@ class MusicPlayer {
         // Draw center line
         ctx.strokeStyle = 'rgba(102, 126, 234, 0.3)';
         ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(0, HEIGHT / 2);
-        ctx.lineTo(WIDTH, HEIGHT / 2);
-        ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, HEIGHT / 2);
+            ctx.lineTo(WIDTH, HEIGHT / 2);
+            ctx.stroke();
 
-        requestAnimationFrame(() => this.drawVisualizer());
+            requestAnimationFrame(() => this.drawVisualizer());
+        } catch (error) {
+            console.error('Visualizer drawing error:', error);
+            // Stop visualizer on error to prevent infinite error loop
+            this.visualizerActive = false;
+        }
     }
 
     toggleVisualizer() {
@@ -1745,6 +1784,11 @@ class MusicPlayer {
         this.visualizerActive = !this.visualizerActive;
 
         if (this.visualizerActive) {
+            // Setup visualizer on first use (lazy initialization)
+            if (!this.audioContext) {
+                this.setupVisualizer();
+            }
+
             if (this.visualizerCanvas) {
                 this.visualizerCanvas.style.display = 'block';
             }
@@ -1950,6 +1994,12 @@ class MusicPlayer {
         if (!this.castSession || !track) return;
 
         try {
+            // Revoke previous Cast blob URL to prevent memory leak
+            if (this.castBlobUrl) {
+                URL.revokeObjectURL(this.castBlobUrl);
+                this.castBlobUrl = null;
+            }
+
             // Get track data
             const trackData = await this.db.getTrack(track.id);
 
@@ -1964,6 +2014,7 @@ class MusicPlayer {
             }
 
             const url = URL.createObjectURL(fileBlob);
+            this.castBlobUrl = url; // Store for cleanup
 
             // Create media info for Cast
             const i18n = I18N[this.lang];

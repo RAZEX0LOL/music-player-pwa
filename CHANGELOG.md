@@ -1,5 +1,86 @@
 # Changelog
 
+## Version 3.0.5 - 2025-10-26
+
+### 🐛 Bug Fixes - Comprehensive Code Review
+
+**Fixed 4 bugs through complete project audit:**
+
+#### 1. Memory Leak in Chromecast
+- **Issue**: Blob URLs not revoked when casting tracks
+- **Impact**: Memory accumulation over time
+- **Fix**: Added `castBlobUrl` tracking and automatic cleanup
+- **Result**: Stable memory usage during Cast sessions
+
+#### 2. Missing Input Validation
+- **Issue**: `parseInt()` results not validated in renderPlaylist
+- **Impact**: Potential NaN errors
+- **Fix**: Added validation checks before using parsed values
+- **Result**: Crash-resistant track selection
+
+#### 3. Hardcoded Text (i18n)
+- **Issue**: Russian text hardcoded in multiple functions
+- **Impact**: Poor UX for English users
+- **Fix**: Replaced all hardcoded strings with i18n references
+- **Functions fixed**: `clearAllTracks()`, `deleteTrack()`, `togglePlay()`
+- **Result**: Consistent bilingual support
+
+#### 4. Visualizer Error Handling
+- **Issue**: No error handling in drawing loop
+- **Impact**: Potential crashes and infinite error loops
+- **Fix**: Added try-catch with safety checks
+- **Result**: Graceful degradation on errors
+
+**Technical Improvements:**
+- Better memory management with tracked references
+- Defensive programming with input validation
+- Consistent use of ErrorHandler for notifications
+- Improved code maintainability
+
+**Files Modified**: `app.js` (~45 lines), `sw.js` (cache version)
+
+---
+
+## Version 3.0.4 - 2025-10-26
+
+### 🔊 Critical Audio Fix - Lock Screen Playback
+
+**Fixed: No sound when screen is locked**
+
+- **Issue**: Audio stopped playing when screen locked or app went to background
+- **Root Cause**: Web Audio API (visualizer) AudioContext gets suspended on lock screen, blocking audio flow
+- **Solution**:
+  - **Lazy initialization**: AudioContext only created when visualizer first used
+  - **Auto-resume**: AudioContext automatically resumes on:
+    - Audio playback start
+    - Screen unlock (visibility change)
+    - Window focus
+  - Users who never use visualizer bypass Web Audio API entirely
+
+**Key Improvements:**
+- ✅ Audio plays continuously on lock screen
+- ✅ No interruption when screen locks
+- ✅ Background playback works properly
+- ✅ Visualizer still works when needed
+- ✅ Better performance (no AudioContext overhead unless visualizer used)
+
+**Technical Changes:**
+```javascript
+// Only setup visualizer when first activated
+if (!this.audioContext) {
+    this.setupVisualizer();
+}
+
+// Auto-resume on play
+if (this.audioContext && this.audioContext.state === 'suspended') {
+    this.audioContext.resume();
+}
+```
+
+**Files Modified**: `app.js`, `sw.js`
+
+---
+
 ## Version 3.0.3 - 2025-10-26
 
 ### 🔧 Lock Screen Controls Fix
