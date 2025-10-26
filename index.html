@@ -15,16 +15,25 @@
     <title>Офлайн Музыкальный Плеер</title>
     <link rel="manifest" href="./manifest.json">
     <link rel="stylesheet" href="./styles.css">
+
+    <!-- ID3 Tag Parser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+
+    <!-- Google Cast SDK -->
+    <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>🎵 Моя Музыка</h1>
-            <div class="status">
-                <span id="statusIndicator" class="online">●</span>
-                <span id="statusText">Готов</span>
+            <div class="header-controls">
+                <div class="status">
+                    <span id="statusIndicator" class="online">●</span>
+                    <span id="statusText">Готов</span>
+                </div>
+                <button id="themeToggle" class="icon-btn" title="Toggle theme" aria-label="Toggle dark/light theme">🌓</button>
+                <button id="helpBtn" class="help-btn" title="Инструкция / Help" aria-label="Show help">❓</button>
             </div>
-            <button id="helpBtn" class="help-btn" title="Инструкция / Help">❓</button>
         </header>
 
         <div class="add-tracks-section">
@@ -41,6 +50,16 @@
             </p>
         </div>
 
+        <!-- Playlists -->
+        <div class="playlists-bar">
+            <select id="playlistSelector" class="playlist-selector" aria-label="Select playlist">
+                <option value="default">📂 Default Playlist</option>
+            </select>
+            <button id="newPlaylistBtn" class="control-icon-btn" title="New playlist" aria-label="Create new playlist">➕</button>
+            <button id="renamePlaylistBtn" class="control-icon-btn" title="Rename playlist" aria-label="Rename current playlist">✏️</button>
+            <button id="deletePlaylistBtn" class="control-icon-btn" title="Delete playlist" aria-label="Delete current playlist">🗑️</button>
+        </div>
+
         <!-- Search and Controls -->
         <div class="search-controls">
             <input type="search" id="searchInput" class="search-input" placeholder="🔍 Поиск треков... / Search tracks..." aria-label="Search tracks">
@@ -49,6 +68,9 @@
                 <button id="repeatBtn" class="control-icon-btn" title="Repeat (R)" aria-label="Cycle repeat mode">🔁</button>
                 <button id="speedBtn" class="control-icon-btn" title="Playback speed" aria-label="Change playback speed">1x</button>
                 <button id="sleepTimerBtn" class="control-icon-btn" title="Sleep timer" aria-label="Set sleep timer">⏰</button>
+                <button id="visualizerBtn" class="control-icon-btn" title="Audio visualizer" aria-label="Toggle audio visualizer">📊</button>
+                <button id="lyricsBtn" class="control-icon-btn" title="Lyrics" aria-label="Toggle lyrics display">🎤</button>
+                <button id="castBtn" class="control-icon-btn" title="Cast to device" aria-label="Cast to Chromecast" style="display: none;">📡</button>
                 <button id="exportBtn" class="control-icon-btn" title="Export playlist" aria-label="Export playlist to JSON">💾</button>
                 <button id="importBtn" class="control-icon-btn" title="Import playlist" aria-label="Import playlist from JSON">📥</button>
             </div>
@@ -56,6 +78,8 @@
 
         <div class="now-playing">
             <div class="album-art">
+                <img id="albumArtImg" class="album-art-image" alt="Album art" style="display: none;">
+                <canvas id="visualizerCanvas" class="visualizer-canvas" width="400" height="400" style="display: none;"></canvas>
                 <div class="vinyl-disc" id="vinylDisc">
                     <div class="vinyl-center"></div>
                 </div>
@@ -63,6 +87,18 @@
             <div class="track-info">
                 <h2 id="currentTrackTitle">Трек не играет</h2>
                 <p id="currentTrackArtist">Выберите трек для начала</p>
+                <p id="currentTrackAlbum" class="track-album"></p>
+            </div>
+        </div>
+
+        <!-- Lyrics Display -->
+        <div id="lyricsPanel" class="lyrics-panel" style="display: none;">
+            <div class="lyrics-header">
+                <h3>🎤 Lyrics</h3>
+                <button id="closeLyricsBtn" class="close-lyrics-btn" aria-label="Close lyrics">✕</button>
+            </div>
+            <div id="lyricsContent" class="lyrics-content">
+                <p class="lyrics-empty">No lyrics available</p>
             </div>
         </div>
 
@@ -156,13 +192,66 @@
             </div>
 
             <div class="help-section">
-                <h3>✨ Новые функции / New Features</h3>
+                <h3>✨ Функции v2.0 / v2.0 Features</h3>
                 <p>🔀 <strong>Перемешивание</strong> - Случайный порядок / Random playback</p>
                 <p>🔁 <strong>Повтор</strong> - Одного трека или всех / Repeat one or all</p>
                 <p>🔍 <strong>Поиск</strong> - Быстрый поиск по названию / Quick search</p>
-                <p>💾 <strong>Экспорт</strong> - Сохранить плейлист / Save playlist</p>
+                <p>💾 <strong>Экспорт/Импорт</strong> - Сохранить плейлист / Save playlist</p>
                 <p>⏰ <strong>Таймер сна</strong> - Автостоп / Auto stop</p>
                 <p>⚡ <strong>Скорость</strong> - 0.5x до 2x / 0.5x to 2x speed</p>
+            </div>
+
+            <div class="help-section">
+                <h3>🎨 Функции v3.0 / v3.0 Features</h3>
+                <p>📂 <strong>Плейлисты</strong> - Создавайте несколько плейлистов / Create multiple playlists</p>
+                <p>🎤 <strong>Тексты песен</strong> - Просмотр текстов с синхронизацией / View lyrics with sync</p>
+                <p>📊 <strong>Визуализатор</strong> - Красивая визуализация звука / Beautiful audio visualization</p>
+                <p>🖼️ <strong>Обложки альбомов</strong> - Автоматическое извлечение / Auto album art extraction</p>
+                <p>🌓 <strong>Темы</strong> - Темная и светлая тема / Dark and light theme</p>
+                <p>📡 <strong>Chromecast</strong> - Трансляция на устройства / Cast to devices</p>
+                <p>🏷️ <strong>ID3 теги</strong> - Метаданные треков / Track metadata</p>
+            </div>
+
+            <div class="help-section">
+                <h3>📂 Управление плейлистами / Playlist Management</h3>
+                <p>➕ <strong>Создать</strong> - Нажмите ➕ для нового плейлиста</p>
+                <p>➕ <strong>Create</strong> - Click ➕ for new playlist</p>
+                <p>✏️ <strong>Переименовать</strong> - Нажмите ✏️ для переименования</p>
+                <p>✏️ <strong>Rename</strong> - Click ✏️ to rename</p>
+                <p>🗑️ <strong>Удалить</strong> - Нажмите 🗑️ для удаления</p>
+                <p>🗑️ <strong>Delete</strong> - Click 🗑️ to delete</p>
+                <p>📑 <strong>Переключение</strong> - Используйте выпадающий список</p>
+                <p>📑 <strong>Switch</strong> - Use dropdown selector</p>
+            </div>
+
+            <div class="help-section">
+                <h3>🎤 Тексты песен / Lyrics</h3>
+                <p><strong>Открыть:</strong> Нажмите 🎤 в панели управления</p>
+                <p><strong>Open:</strong> Click 🎤 in control panel</p>
+                <p><strong>Синхронизация:</strong> Поддержка формата .LRC с таймкодами</p>
+                <p><strong>Sync:</strong> Supports .LRC format with timestamps</p>
+                <p><strong>Прокрутка:</strong> Автопрокрутка к текущей строке</p>
+                <p><strong>Scrolling:</strong> Auto-scroll to current line</p>
+            </div>
+
+            <div class="help-section">
+                <h3>📊 Визуализатор / Visualizer</h3>
+                <p><strong>Включить:</strong> Нажмите 📊 в панели управления</p>
+                <p><strong>Enable:</strong> Click 📊 in control panel</p>
+                <p><strong>Дизайн:</strong> Круговая визуализация частот</p>
+                <p><strong>Design:</strong> Circular frequency visualization</p>
+                <p><strong>Обложка:</strong> Визуализатор заменяет обложку альбома</p>
+                <p><strong>Art:</strong> Visualizer replaces album art</p>
+            </div>
+
+            <div class="help-section">
+                <h3>📡 Chromecast</h3>
+                <p><strong>Подключение:</strong> Нажмите 📡 для выбора устройства</p>
+                <p><strong>Connect:</strong> Click 📡 to select device</p>
+                <p><strong>Метаданные:</strong> Отправляет название, исполнителя, обложку</p>
+                <p><strong>Metadata:</strong> Sends title, artist, album art</p>
+                <p><strong>Отключение:</strong> Нажмите снова для остановки трансляции</p>
+                <p><strong>Disconnect:</strong> Click again to stop casting</p>
             </div>
 
             <div class="help-section">

@@ -35,7 +35,23 @@ const I18N = {
         sleepTimerSet: 'Таймер сна установлен на',
         minutes: 'минут',
         sleepTimerCancelled: 'Таймер сна отменён',
-        tracks: 'треков'
+        tracks: 'треков',
+        newPlaylist: 'Новый плейлист',
+        enterPlaylistName: 'Введите название плейлиста',
+        playlistCreated: 'Плейлист создан',
+        playlistRenamed: 'Плейлист переименован',
+        playlistDeleted: 'Плейлист удалён',
+        cannotDeleteDefault: 'Нельзя удалить основной плейлист',
+        confirmDeletePlaylist: 'Удалить плейлист',
+        unknownArtist: 'Неизвестный исполнитель',
+        unknownAlbum: 'Неизвестный альбом',
+        visualizerOn: 'Визуализатор включён',
+        visualizerOff: 'Визуализатор выключён',
+        lyricsOn: 'Текст песни открыт',
+        lyricsOff: 'Текст песни закрыт',
+        noLyrics: 'Текст песни не найден',
+        themeLight: 'Светлая тема',
+        themeDark: 'Тёмная тема'
     },
     en: {
         noTracks: 'No tracks yet',
@@ -72,7 +88,23 @@ const I18N = {
         sleepTimerSet: 'Sleep timer set to',
         minutes: 'minutes',
         sleepTimerCancelled: 'Sleep timer cancelled',
-        tracks: 'tracks'
+        tracks: 'tracks',
+        newPlaylist: 'New Playlist',
+        enterPlaylistName: 'Enter playlist name',
+        playlistCreated: 'Playlist created',
+        playlistRenamed: 'Playlist renamed',
+        playlistDeleted: 'Playlist deleted',
+        cannotDeleteDefault: 'Cannot delete default playlist',
+        confirmDeletePlaylist: 'Delete playlist',
+        unknownArtist: 'Unknown Artist',
+        unknownAlbum: 'Unknown Album',
+        visualizerOn: 'Visualizer enabled',
+        visualizerOff: 'Visualizer disabled',
+        lyricsOn: 'Lyrics opened',
+        lyricsOff: 'Lyrics closed',
+        noLyrics: 'No lyrics found',
+        themeLight: 'Light theme',
+        themeDark: 'Dark theme'
     }
 };
 
@@ -106,7 +138,7 @@ class ErrorHandler {
 class MusicDB {
     constructor() {
         this.dbName = 'MusicPlayerDB';
-        this.version = 1;
+        this.version = 2; // Upgraded for playlists support
         this.db = null;
     }
 
@@ -125,11 +157,47 @@ class MusicDB {
 
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
+                const oldVersion = event.oldVersion;
 
+                // Create tracks store
                 if (!db.objectStoreNames.contains('tracks')) {
                     const objectStore = db.createObjectStore('tracks', { keyPath: 'id', autoIncrement: true });
                     objectStore.createIndex('name', 'name', { unique: false });
                     objectStore.createIndex('addedDate', 'addedDate', { unique: false });
+                    objectStore.createIndex('playlistId', 'playlistId', { unique: false });
+                }
+
+                // Create playlists store (version 2+)
+                if (oldVersion < 2 && !db.objectStoreNames.contains('playlists')) {
+                    const playlistStore = db.createObjectStore('playlists', { keyPath: 'id' });
+                    playlistStore.createIndex('name', 'name', { unique: false });
+                    playlistStore.createIndex('createdDate', 'createdDate', { unique: false });
+
+                    // Create default playlist
+                    const transaction = event.target.transaction;
+                    const store = transaction.objectStore('playlists');
+                    store.add({
+                        id: 'default',
+                        name: 'Default Playlist',
+                        createdDate: new Date().toISOString()
+                    });
+                }
+
+                // Migrate existing tracks to default playlist (version 2+)
+                if (oldVersion < 2 && db.objectStoreNames.contains('tracks')) {
+                    const transaction = event.target.transaction;
+                    const tracksStore = transaction.objectStore('tracks');
+                    tracksStore.openCursor().onsuccess = (cursorEvent) => {
+                        const cursor = cursorEvent.target.result;
+                        if (cursor) {
+                            const track = cursor.value;
+                            if (!track.playlistId) {
+                                track.playlistId = 'default';
+                                cursor.update(track);
+                            }
+                            cursor.continue();
+                        }
+                    };
                 }
             };
         });
@@ -231,7 +299,7 @@ class MusicDB {
         }
     }
 
-    async addTrack(file) {
+    async addTrack(file, playlistId = 'default', metadata = null) {
         // Convert File to ArrayBuffer BEFORE creating transaction
         // (to avoid transaction timeout)
         // Store ArrayBuffer instead of Blob/File for maximum compatibility
@@ -246,7 +314,16 @@ class MusicDB {
             arrayBuffer: arrayBuffer,  // Store raw ArrayBuffer (most compatible)
             size: file.size,
             type: file.type,
-            addedDate: new Date().toISOString()
+            addedDate: new Date().toISOString(),
+            playlistId: playlistId,
+            // Metadata from ID3 tags
+            artist: metadata?.artist || null,
+            album: metadata?.album || null,
+            title: metadata?.title || null,
+            year: metadata?.year || null,
+            genre: metadata?.genre || null,
+            albumArt: metadata?.albumArt || null,
+            lyrics: metadata?.lyrics || null
         };
 
         return new Promise((resolve, reject) => {
@@ -299,6 +376,109 @@ class MusicDB {
             request.onerror = () => reject(request.error);
         });
     }
+
+    // Playlist methods
+    async getAllPlaylists() {
+        const transaction = this.db.transaction(['playlists'], 'readonly');
+        const store = transaction.objectStore('playlists');
+
+        return new Promise((resolve, reject) => {
+            const request = store.getAll();
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async getPlaylist(id) {
+        const transaction = this.db.transaction(['playlists'], 'readonly');
+        const store = transaction.objectStore('playlists');
+
+        return new Promise((resolve, reject) => {
+            const request = store.get(id);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async createPlaylist(name) {
+        const transaction = this.db.transaction(['playlists'], 'readwrite');
+        const store = transaction.objectStore('playlists');
+
+        const playlist = {
+            id: 'playlist_' + Date.now(),
+            name: name,
+            createdDate: new Date().toISOString()
+        };
+
+        return new Promise((resolve, reject) => {
+            const request = store.add(playlist);
+            request.onsuccess = () => resolve(playlist);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async renamePlaylist(id, newName) {
+        const transaction = this.db.transaction(['playlists'], 'readwrite');
+        const store = transaction.objectStore('playlists');
+
+        return new Promise(async (resolve, reject) => {
+            const getRequest = store.get(id);
+            getRequest.onsuccess = () => {
+                const playlist = getRequest.result;
+                if (playlist) {
+                    playlist.name = newName;
+                    const updateRequest = store.put(playlist);
+                    updateRequest.onsuccess = () => resolve(playlist);
+                    updateRequest.onerror = () => reject(updateRequest.error);
+                } else {
+                    reject(new Error('Playlist not found'));
+                }
+            };
+            getRequest.onerror = () => reject(getRequest.error);
+        });
+    }
+
+    async deletePlaylist(id) {
+        if (id === 'default') {
+            throw new Error('Cannot delete default playlist');
+        }
+
+        const transaction = this.db.transaction(['playlists', 'tracks'], 'readwrite');
+        const playlistStore = transaction.objectStore('playlists');
+        const tracksStore = transaction.objectStore('tracks');
+
+        return new Promise((resolve, reject) => {
+            // Delete all tracks in this playlist
+            const index = tracksStore.index('playlistId');
+            const tracksRequest = index.openCursor(IDBKeyRange.only(id));
+
+            tracksRequest.onsuccess = (event) => {
+                const cursor = event.target.result;
+                if (cursor) {
+                    cursor.delete();
+                    cursor.continue();
+                } else {
+                    // All tracks deleted, now delete the playlist
+                    const deleteRequest = playlistStore.delete(id);
+                    deleteRequest.onsuccess = () => resolve();
+                    deleteRequest.onerror = () => reject(deleteRequest.error);
+                }
+            };
+            tracksRequest.onerror = () => reject(tracksRequest.error);
+        });
+    }
+
+    async getTracksByPlaylist(playlistId) {
+        const transaction = this.db.transaction(['tracks'], 'readonly');
+        const store = transaction.objectStore('tracks');
+        const index = store.index('playlistId');
+
+        return new Promise((resolve, reject) => {
+            const request = index.getAll(IDBKeyRange.only(playlistId));
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
 }
 
 // Music Player
@@ -320,6 +500,27 @@ class MusicPlayer {
         // File validation constants
         this.MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
         this.ALLOWED_TYPES = ['audio/', 'video/mp4', 'video/x-m4v'];
+
+        // Playlist management
+        this.currentPlaylist = 'default';
+        this.playlists = [];
+
+        // Visualizer
+        this.visualizerActive = false;
+        this.audioContext = null;
+        this.analyser = null;
+        this.dataArray = null;
+
+        // Theme
+        this.currentTheme = localStorage.getItem('theme') || 'dark';
+
+        // Lyrics
+        this.lyricsVisible = false;
+
+        // Cast
+        this.castSession = null;
+        this.castPlayer = null;
+        this.isCasting = false;
 
         this.initElements();
         this.initEventListeners();
@@ -345,7 +546,7 @@ class MusicPlayer {
         this.statusIndicator = document.getElementById('statusIndicator');
         this.statusText = document.getElementById('statusText');
 
-        // New elements
+        // New elements (v2.0)
         this.shuffleBtn = document.getElementById('shuffleBtn');
         this.repeatBtn = document.getElementById('repeatBtn');
         this.searchInput = document.getElementById('searchInput');
@@ -354,6 +555,22 @@ class MusicPlayer {
         this.importFileInput = document.getElementById('importFileInput');
         this.sleepTimerBtn = document.getElementById('sleepTimerBtn');
         this.speedBtn = document.getElementById('speedBtn');
+
+        // New elements (v3.0)
+        this.playlistSelector = document.getElementById('playlistSelector');
+        this.newPlaylistBtn = document.getElementById('newPlaylistBtn');
+        this.renamePlaylistBtn = document.getElementById('renamePlaylistBtn');
+        this.deletePlaylistBtn = document.getElementById('deletePlaylistBtn');
+        this.themeToggle = document.getElementById('themeToggle');
+        this.visualizerBtn = document.getElementById('visualizerBtn');
+        this.lyricsBtn = document.getElementById('lyricsBtn');
+        this.visualizerCanvas = document.getElementById('visualizerCanvas');
+        this.albumArtImg = document.getElementById('albumArtImg');
+        this.currentTrackAlbum = document.getElementById('currentTrackAlbum');
+        this.lyricsPanel = document.getElementById('lyricsPanel');
+        this.lyricsContent = document.getElementById('lyricsContent');
+        this.closeLyricsBtn = document.getElementById('closeLyricsBtn');
+        this.castBtn = document.getElementById('castBtn');
     }
 
     initEventListeners() {
@@ -402,6 +619,35 @@ class MusicPlayer {
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => this.handleKeyboardShortcut(e));
 
+        // v3.0 feature event listeners
+        if (this.playlistSelector) {
+            this.playlistSelector.addEventListener('change', (e) => this.switchPlaylist(e.target.value));
+        }
+        if (this.newPlaylistBtn) {
+            this.newPlaylistBtn.addEventListener('click', () => this.createNewPlaylist());
+        }
+        if (this.renamePlaylistBtn) {
+            this.renamePlaylistBtn.addEventListener('click', () => this.renameCurrentPlaylist());
+        }
+        if (this.deletePlaylistBtn) {
+            this.deletePlaylistBtn.addEventListener('click', () => this.deleteCurrentPlaylist());
+        }
+        if (this.themeToggle) {
+            this.themeToggle.addEventListener('click', () => this.toggleTheme());
+        }
+        if (this.visualizerBtn) {
+            this.visualizerBtn.addEventListener('click', () => this.toggleVisualizer());
+        }
+        if (this.lyricsBtn) {
+            this.lyricsBtn.addEventListener('click', () => this.toggleLyrics());
+        }
+        if (this.closeLyricsBtn) {
+            this.closeLyricsBtn.addEventListener('click', () => this.toggleLyrics());
+        }
+        if (this.castBtn) {
+            this.castBtn.addEventListener('click', () => this.toggleCast());
+        }
+
         // Drag and drop support for offline file uploads
         const dropZone = document.body;
         dropZone.addEventListener('dragover', (e) => this.handleDragOver(e));
@@ -412,10 +658,14 @@ class MusicPlayer {
     async init() {
         try {
             await this.db.init();
+            await this.loadPlaylists();
             await this.loadPlaylist();
             this.setVolume(70);
             this.updateOnlineStatus(navigator.onLine);
             this.registerServiceWorker();
+            this.initTheme();
+            this.setupVisualizer();
+            this.initCast();
         } catch (error) {
             console.error('Initialization error:', error);
             this.statusText.textContent = 'Ошибка инициализации';
@@ -492,7 +742,9 @@ class MusicPlayer {
                 const progress = Math.round((i / files.length) * 100);
                 this.statusText.textContent = `${i18n.addingTracks} ${i + 1}/${files.length} (${progress}%)`;
 
-                await this.db.addTrack(file);
+                // Parse ID3 tags if available
+                const metadata = await this.parseID3Tags(file);
+                await this.db.addTrack(file, this.currentPlaylist, metadata);
                 addedCount++;
             }
 
@@ -539,7 +791,7 @@ class MusicPlayer {
 
     async loadPlaylist() {
         try {
-            this.playlist = await this.db.getAllTracks();
+            this.playlist = await this.db.getTracksByPlaylist(this.currentPlaylist);
             this.renderPlaylist();
             this.updateTrackCount();
         } catch (error) {
@@ -703,10 +955,10 @@ class MusicPlayer {
             }
 
             this.updatePlayButton();
-            this.updateNowPlaying(track.name);
+            this.updateTrackMetadata(track); // v3.0: Update with full metadata
             this.vinylDisc.classList.add('spinning');
             this.renderPlaylist();
-            this.updateMediaSession(track.name);
+            this.updateMediaSession(track);
             this.updateMediaSessionPositionState();
         } catch (error) {
             console.error('Error playing track:', error);
@@ -781,6 +1033,7 @@ class MusicPlayer {
             const progress = (this.audio.currentTime / this.audio.duration) * 100;
             this.progressBar.value = progress;
             this.currentTimeEl.textContent = this.formatTime(this.audio.currentTime);
+            this.syncLyrics(); // v3.0: Sync lyrics with current time
         }
     }
 
@@ -844,12 +1097,19 @@ class MusicPlayer {
         return div.innerHTML;
     }
 
-    updateMediaSession(trackName) {
+    updateMediaSession(track) {
         if ('mediaSession' in navigator) {
+            const i18n = I18N[this.lang];
+            const title = track.title || track.name.replace(/\.[^/.]+$/, '');
+            const artist = track.artist || i18n.myMusic;
+            const album = track.album || i18n.offlineMusicPlayer;
+            const artwork = track.albumArt ? [{ src: track.albumArt, sizes: '512x512', type: 'image/jpeg' }] : [];
+
             navigator.mediaSession.metadata = new MediaMetadata({
-                title: trackName.replace(/\.[^/.]+$/, ''),
-                artist: 'Моя Музыка',
-                album: 'Офлайн Музыкальный Плеер'
+                title: title,
+                artist: artist,
+                album: album,
+                artwork: artwork
             });
 
             // Basic playback controls
@@ -1164,7 +1424,9 @@ class MusicPlayer {
                 const progress = Math.round((i / files.length) * 100);
                 this.statusText.textContent = `${i18n.addingTracks} ${i + 1}/${files.length} (${progress}%)`;
 
-                await this.db.addTrack(file);
+                // Parse ID3 tags if available
+                const metadata = await this.parseID3Tags(file);
+                await this.db.addTrack(file, this.currentPlaylist, metadata);
                 addedCount++;
             }
 
@@ -1178,6 +1440,510 @@ class MusicPlayer {
             console.error('Error adding tracks via drag and drop:', error);
             this.statusText.textContent = i18n.errorAddingTracks;
             ErrorHandler.notify(i18n.errorAddingTracks, error);
+        }
+    }
+
+    // ========== v3.0 ADVANCED FEATURES ==========
+
+    // ID3 Tag Parsing
+    async parseID3Tags(file) {
+        if (typeof jsmediatags === 'undefined') {
+            return null; // Library not loaded
+        }
+
+        return new Promise((resolve) => {
+            jsmediatags.read(file, {
+                onSuccess: (tag) => {
+                    const tags = tag.tags;
+                    const metadata = {
+                        title: tags.title || null,
+                        artist: tags.artist || null,
+                        album: tags.album || null,
+                        year: tags.year || null,
+                        genre: tags.genre?.data || null,
+                        albumArt: null,
+                        lyrics: tags.lyrics?.lyrics || tags.USLT?.lyrics || null
+                    };
+
+                    // Extract album art
+                    if (tags.picture) {
+                        try {
+                            const picture = tags.picture;
+                            const base64String = btoa(
+                                picture.data.reduce((acc, byte) => acc + String.fromCharCode(byte), '')
+                            );
+                            metadata.albumArt = `data:${picture.format};base64,${base64String}`;
+                        } catch (err) {
+                            console.error('Error extracting album art:', err);
+                        }
+                    }
+
+                    resolve(metadata);
+                },
+                onError: (error) => {
+                    console.log('ID3 parsing error:', error);
+                    resolve(null);
+                }
+            });
+        });
+    }
+
+    // Update track metadata display
+    updateTrackMetadata(track) {
+        const i18n = I18N[this.lang];
+        const title = track.title || track.name.replace(/\.[^/.]+$/, '');
+        const artist = track.artist || i18n.unknownArtist;
+        const album = track.album || '';
+
+        this.currentTrackTitle.textContent = title;
+        this.currentTrackArtist.textContent = artist;
+        if (this.currentTrackAlbum) {
+            this.currentTrackAlbum.textContent = album;
+            this.currentTrackAlbum.style.display = album ? 'block' : 'none';
+        }
+
+        this.showAlbumArtOrVinyl(track);
+    }
+
+    // Show album art or vinyl disc
+    showAlbumArtOrVinyl(track) {
+        if (this.visualizerActive) return; // Don't change if visualizer is active
+
+        if (track && track.albumArt && this.albumArtImg) {
+            this.albumArtImg.src = track.albumArt;
+            this.albumArtImg.style.display = 'block';
+            this.vinylDisc.style.display = 'none';
+        } else {
+            if (this.albumArtImg) {
+                this.albumArtImg.style.display = 'none';
+            }
+            this.vinylDisc.style.display = 'block';
+        }
+    }
+
+    // Playlist Management
+    async loadPlaylists() {
+        try {
+            this.playlists = await this.db.getAllPlaylists();
+            if (this.playlistSelector) {
+                this.playlistSelector.innerHTML = this.playlists.map(p =>
+                    `<option value="${p.id}">${this.escapeHtml(p.name)}</option>`
+                ).join('');
+                this.playlistSelector.value = this.currentPlaylist;
+            }
+        } catch (error) {
+            console.error('Error loading playlists:', error);
+        }
+    }
+
+    async switchPlaylist(playlistId) {
+        this.currentPlaylist = playlistId;
+        await this.loadPlaylist();
+    }
+
+    async createNewPlaylist() {
+        const i18n = I18N[this.lang];
+        const name = prompt(i18n.enterPlaylistName, i18n.newPlaylist);
+        if (!name || name.trim() === '') return;
+
+        try {
+            const playlist = await this.db.createPlaylist(name.trim());
+            await this.loadPlaylists();
+            this.playlistSelector.value = playlist.id;
+            this.currentPlaylist = playlist.id;
+            await this.loadPlaylist();
+            ErrorHandler.notify(i18n.playlistCreated + ': ' + name, null, 'success');
+        } catch (error) {
+            ErrorHandler.notify('Error creating playlist', error);
+        }
+    }
+
+    async renameCurrentPlaylist() {
+        const i18n = I18N[this.lang];
+
+        if (this.currentPlaylist === 'default') {
+            ErrorHandler.notify('Cannot rename default playlist', null, 'warning');
+            return;
+        }
+
+        try {
+            const playlist = await this.db.getPlaylist(this.currentPlaylist);
+            if (!playlist) return;
+
+            const newName = prompt(i18n.enterPlaylistName, playlist.name);
+            if (!newName || newName.trim() === '') return;
+
+            await this.db.renamePlaylist(this.currentPlaylist, newName.trim());
+            await this.loadPlaylists();
+            ErrorHandler.notify(i18n.playlistRenamed, null, 'success');
+        } catch (error) {
+            ErrorHandler.notify('Error renaming playlist', error);
+        }
+    }
+
+    async deleteCurrentPlaylist() {
+        const i18n = I18N[this.lang];
+
+        if (this.currentPlaylist === 'default') {
+            ErrorHandler.notify(i18n.cannotDeleteDefault, null, 'warning');
+            return;
+        }
+
+        const playlist = await this.db.getPlaylist(this.currentPlaylist);
+        if (!playlist) return;
+
+        if (!confirm(i18n.confirmDeletePlaylist + ' "' + playlist.name + '"?')) return;
+
+        try {
+            await this.db.deletePlaylist(this.currentPlaylist);
+            this.currentPlaylist = 'default';
+            await this.loadPlaylists();
+            await this.loadPlaylist();
+            ErrorHandler.notify(i18n.playlistDeleted, null, 'success');
+        } catch (error) {
+            ErrorHandler.notify('Error deleting playlist', error);
+        }
+    }
+
+    // Audio Visualizer
+    setupVisualizer() {
+        try {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            this.analyser = this.audioContext.createAnalyser();
+            this.analyser.fftSize = 256;
+            this.analyser.smoothingTimeConstant = 0.8;
+
+            const source = this.audioContext.createMediaElementSource(this.audio);
+            source.connect(this.analyser);
+            this.analyser.connect(this.audioContext.destination);
+
+            this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+        } catch (error) {
+            console.error('Visualizer setup error:', error);
+        }
+    }
+
+    drawVisualizer() {
+        if (!this.visualizerActive || !this.analyser || !this.visualizerCanvas) return;
+
+        const canvas = this.visualizerCanvas;
+        const ctx = canvas.getContext('2d');
+        const WIDTH = canvas.width;
+        const HEIGHT = canvas.height;
+
+        this.analyser.getByteFrequencyData(this.dataArray);
+
+        // Clear canvas
+        ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+        // Draw circular visualizer
+        const centerX = WIDTH / 2;
+        const centerY = HEIGHT / 2;
+        const radius = Math.min(WIDTH, HEIGHT) / 3;
+
+        const barCount = this.dataArray.length;
+        const barWidth = (Math.PI * 2) / barCount;
+
+        for (let i = 0; i < barCount; i++) {
+            const barHeight = (this.dataArray[i] / 255) * radius;
+            const angle = i * barWidth;
+
+            const x1 = centerX + Math.cos(angle) * radius;
+            const y1 = centerY + Math.sin(angle) * radius;
+            const x2 = centerX + Math.cos(angle) * (radius + barHeight);
+            const y2 = centerY + Math.sin(angle) * (radius + barHeight);
+
+            const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+
+        requestAnimationFrame(() => this.drawVisualizer());
+    }
+
+    toggleVisualizer() {
+        const i18n = I18N[this.lang];
+        this.visualizerActive = !this.visualizerActive;
+
+        if (this.visualizerActive) {
+            if (this.visualizerCanvas) {
+                this.visualizerCanvas.style.display = 'block';
+            }
+            this.vinylDisc.style.display = 'none';
+            if (this.albumArtImg) {
+                this.albumArtImg.style.display = 'none';
+            }
+            if (this.audioContext && this.audioContext.state === 'suspended') {
+                this.audioContext.resume();
+            }
+            if (this.visualizerBtn) {
+                this.visualizerBtn.classList.add('active');
+            }
+            this.drawVisualizer();
+            ErrorHandler.notify(i18n.visualizerOn, null, 'info');
+        } else {
+            if (this.visualizerCanvas) {
+                this.visualizerCanvas.style.display = 'none';
+            }
+            if (this.visualizerBtn) {
+                this.visualizerBtn.classList.remove('active');
+            }
+            const currentTrack = this.playlist[this.currentIndex];
+            if (currentTrack) {
+                this.showAlbumArtOrVinyl(currentTrack);
+            }
+            ErrorHandler.notify(i18n.visualizerOff, null, 'info');
+        }
+    }
+
+    // Lyrics Display
+    toggleLyrics() {
+        const i18n = I18N[this.lang];
+
+        if (!this.lyricsPanel) return;
+
+        this.lyricsVisible = !this.lyricsVisible;
+
+        if (this.lyricsVisible) {
+            this.displayLyrics();
+            this.lyricsPanel.style.display = 'block';
+            if (this.lyricsBtn) {
+                this.lyricsBtn.classList.add('active');
+            }
+            ErrorHandler.notify(i18n.lyricsOn, null, 'info');
+        } else {
+            this.lyricsPanel.style.display = 'none';
+            if (this.lyricsBtn) {
+                this.lyricsBtn.classList.remove('active');
+            }
+            ErrorHandler.notify(i18n.lyricsOff, null, 'info');
+        }
+    }
+
+    displayLyrics() {
+        const i18n = I18N[this.lang];
+
+        if (!this.lyricsContent) return;
+
+        const track = this.playlist[this.currentIndex];
+        if (!track || !track.lyrics) {
+            this.lyricsContent.innerHTML = '<p class="lyrics-empty">' + i18n.noLyrics + '</p>';
+            return;
+        }
+
+        const lyrics = track.lyrics;
+
+        // Check if LRC format (synchronized lyrics)
+        if (lyrics.includes('[') && lyrics.match(/\[\d{2}:\d{2}/)) {
+            // LRC format with timestamps
+            const lines = lyrics.split('\n').map(line => {
+                const match = line.match(/\[(\d{2}):(\d{2})[:\.]?(\d{2})?\](.*)/);
+                if (match) {
+                    const minutes = parseInt(match[1]);
+                    const seconds = parseInt(match[2]);
+                    const centiseconds = match[3] ? parseInt(match[3]) : 0;
+                    const time = minutes * 60 + seconds + centiseconds / 100;
+                    const text = match[4].trim();
+                    if (text) {
+                        return `<p class="lyrics-line" data-time="${time}">${this.escapeHtml(text)}</p>`;
+                    }
+                }
+                return '';
+            }).filter(l => l).join('');
+
+            this.lyricsContent.innerHTML = lines || '<p class="lyrics-empty">' + i18n.noLyrics + '</p>';
+        } else {
+            // Plain text lyrics
+            const formatted = lyrics.split('\n').map(line =>
+                line.trim() ? `<p>${this.escapeHtml(line)}</p>` : '<br>'
+            ).join('');
+            this.lyricsContent.innerHTML = formatted;
+        }
+    }
+
+    syncLyrics() {
+        if (!this.lyricsVisible || !this.lyricsContent) return;
+
+        const currentTime = this.audio.currentTime;
+        const lines = this.lyricsContent.querySelectorAll('.lyrics-line[data-time]');
+
+        if (lines.length === 0) return;
+
+        let activeLine = null;
+        lines.forEach(line => {
+            const time = parseFloat(line.dataset.time);
+            line.classList.remove('active');
+            if (time <= currentTime) {
+                activeLine = line;
+            }
+        });
+
+        if (activeLine) {
+            activeLine.classList.add('active');
+            // Smooth scroll to active line
+            activeLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    // Theme System
+    initTheme() {
+        document.body.setAttribute('data-theme', this.currentTheme);
+        if (this.themeToggle) {
+            this.themeToggle.textContent = this.currentTheme === 'dark' ? '☀️' : '🌙';
+        }
+    }
+
+    toggleTheme() {
+        const i18n = I18N[this.lang];
+        this.currentTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
+        document.body.setAttribute('data-theme', this.currentTheme);
+        localStorage.setItem('theme', this.currentTheme);
+
+        if (this.themeToggle) {
+            this.themeToggle.textContent = this.currentTheme === 'dark' ? '☀️' : '🌙';
+        }
+
+        const message = this.currentTheme === 'light' ? i18n.themeLight : i18n.themeDark;
+        ErrorHandler.notify(message, null, 'info');
+    }
+
+    // Chromecast / Google Cast Support
+    initCast() {
+        if (typeof cast === 'undefined' || !cast.framework) {
+            console.log('Cast framework not available');
+            return;
+        }
+
+        window['__onGCastApiAvailable'] = (isAvailable) => {
+            if (isAvailable) {
+                try {
+                    const castContext = cast.framework.CastContext.getInstance();
+                    castContext.setOptions({
+                        receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+                        autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+                    });
+
+                    // Show Cast button
+                    if (this.castBtn) {
+                        this.castBtn.style.display = 'flex';
+                    }
+
+                    // Listen for Cast state changes
+                    castContext.addEventListener(
+                        cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
+                        (event) => this.handleCastSessionChange(event)
+                    );
+
+                    console.log('Cast initialized successfully');
+                } catch (error) {
+                    console.error('Cast initialization error:', error);
+                }
+            }
+        };
+    }
+
+    handleCastSessionChange(event) {
+        const sessionState = event.sessionState;
+
+        if (sessionState === cast.framework.SessionState.SESSION_STARTED) {
+            this.castSession = cast.framework.CastContext.getInstance().getCurrentSession();
+            this.isCasting = true;
+            if (this.castBtn) {
+                this.castBtn.classList.add('active');
+            }
+            ErrorHandler.notify('Connected to Cast device', null, 'success');
+
+            // Load current track to Cast
+            if (this.playlist[this.currentIndex]) {
+                this.loadTrackToCast(this.playlist[this.currentIndex]);
+            }
+        } else if (sessionState === cast.framework.SessionState.SESSION_ENDED) {
+            this.castSession = null;
+            this.isCasting = false;
+            if (this.castBtn) {
+                this.castBtn.classList.remove('active');
+            }
+            ErrorHandler.notify('Disconnected from Cast device', null, 'info');
+        }
+    }
+
+    async loadTrackToCast(track) {
+        if (!this.castSession || !track) return;
+
+        try {
+            // Get track data
+            const trackData = await this.db.getTrack(track.id);
+
+            // Create blob URL for Cast (Cast needs a URL, not blob data)
+            let fileBlob;
+            if (trackData.arrayBuffer) {
+                fileBlob = new Blob([trackData.arrayBuffer], { type: trackData.type });
+            } else if (trackData.blob) {
+                fileBlob = trackData.blob;
+            } else if (trackData.file) {
+                fileBlob = trackData.file;
+            }
+
+            const url = URL.createObjectURL(fileBlob);
+
+            // Create media info for Cast
+            const i18n = I18N[this.lang];
+            const mediaInfo = new chrome.cast.media.MediaInfo(url, trackData.type);
+            mediaInfo.metadata = new chrome.cast.media.MusicTrackMediaMetadata();
+            mediaInfo.metadata.title = track.title || track.name;
+            mediaInfo.metadata.artist = track.artist || i18n.unknownArtist;
+            mediaInfo.metadata.albumName = track.album || i18n.unknownAlbum;
+
+            // Add album art if available
+            if (track.albumArt) {
+                mediaInfo.metadata.images = [new chrome.cast.Image(track.albumArt)];
+            }
+
+            // Load media to Cast device
+            const request = new chrome.cast.media.LoadRequest(mediaInfo);
+            request.autoplay = this.isPlaying;
+            request.currentTime = this.audio.currentTime;
+
+            await this.castSession.loadMedia(request);
+
+            // Pause local playback
+            this.audio.pause();
+
+            console.log('Track loaded to Cast device');
+        } catch (error) {
+            console.error('Error loading track to Cast:', error);
+            ErrorHandler.notify('Failed to cast track', error);
+        }
+    }
+
+    toggleCast() {
+        if (typeof cast === 'undefined' || !cast.framework) {
+            ErrorHandler.notify('Cast not available', null, 'warning');
+            return;
+        }
+
+        const castContext = cast.framework.CastContext.getInstance();
+
+        if (this.isCasting) {
+            // Stop casting
+            castContext.endCurrentSession(true);
+        } else {
+            // Request Cast session
+            castContext.requestSession().then(
+                () => console.log('Cast session requested'),
+                (error) => {
+                    if (error !== chrome.cast.ErrorCode.CANCEL) {
+                        ErrorHandler.notify('Cast request failed', null, 'error');
+                    }
+                }
+            );
         }
     }
 }

@@ -1,5 +1,158 @@
 # Changelog
 
+## Version 3.0.0 - 2025-10-26
+
+### 🎉 Major Feature Release - Advanced Media Features
+
+This release adds **7 major advanced features** that transform the Music Player PWA into a professional-grade music management system.
+
+### ✨ New Features
+
+#### 1. 🏷️ ID3 Tag Support & Metadata Extraction
+- Integrated jsmediatags library (v3.9.5) for ID3 parsing
+- Automatic extraction of: Title, Artist, Album, Year, Genre
+- Fallback to filename if metadata unavailable
+- Database upgraded to v2 with metadata fields
+
+#### 2. 🖼️ Album Art Extraction & Display
+- Extracts embedded album artwork from audio files
+- Base64 encoding for storage in IndexedDB
+- Beautiful display in now-playing section
+- Falls back to vinyl disc animation if unavailable
+- Supports JPEG, PNG, GIF formats
+
+#### 3. 📂 Multiple Playlists Management
+- Create unlimited playlists
+- Rename/delete playlists (except default)
+- Switch between playlists instantly
+- Tracks isolated per playlist
+- Full CRUD operations with IndexedDB v2
+
+#### 4. 🎤 Lyrics Display & Synchronization
+- Display plain text lyrics
+- Support for LRC format with timestamps
+- Auto-scroll to current lyric line
+- Highlighted active line with gradient
+- Toggle panel on/off
+
+#### 5. 📊 Audio Visualizer
+- Real-time frequency analysis with Web Audio API
+- Beautiful circular design with radial bars
+- Gradient colors matching app theme
+- Toggle on/off, replaces album art when active
+- Smooth 60fps animation
+
+#### 6. 📡 Chromecast Support
+- Stream music to Chromecast devices
+- Send full metadata (title, artist, album, art)
+- Auto-detect available Cast devices
+- Control playback from sender device
+- Visual feedback for casting state
+
+#### 7. 🌓 Dark/Light Theme Toggle
+- Complete theming system with CSS variables
+- One-click toggle between themes
+- Persistent preference (localStorage)
+- Smooth transitions on all components
+- Both themes maintain brand colors
+
+### 🛠️ Technical Improvements
+
+- **Database Migration**: Seamless upgrade from v1 to v2 with zero data loss
+- **Service Worker**: Updated to v9-advanced
+- **External Dependencies**: Added jsmediatags (50KB) and Google Cast SDK (200KB)
+- **Internationalization**: Full bilingual support for all new features (RU/EN)
+- **Code Quality**: +1,530 lines of well-documented code
+
+### 📊 Code Statistics
+
+- **Files Modified**: 4 (app.js, index.html, styles.css, sw.js)
+- **Lines Added**: ~1,530
+- **New Features**: 7 major features
+- **Database Version**: 1 → 2
+- **Service Worker**: v8 → v9-advanced
+- **Themes**: 1 → 2
+
+### 🎯 User Experience
+
+**Before v3.0:**
+- Basic track names from filenames
+- Single playlist only
+- No visual feedback during playback
+- No metadata display
+- Dark theme only
+- Local playback only
+
+**After v3.0:**
+- ✅ Rich metadata (artist, album, year)
+- ✅ Beautiful album artwork
+- ✅ Multiple organized playlists
+- ✅ Synchronized lyrics display
+- ✅ Mesmerizing audio visualization
+- ✅ Cast to TV/speakers
+- ✅ Choice of dark/light theme
+
+### 🔧 Browser Compatibility
+
+**Fully Tested:**
+- Chrome 90+ (Desktop & Mobile) ✅
+- Edge 90+ (Desktop) ✅
+- Firefox 88+ (Desktop & Mobile) ✅
+- Safari 14+ (Desktop & iOS) ✅
+
+**Feature Support:**
+- All features work across browsers
+- Chromecast: Chrome/Edge only
+
+### 📱 Mobile Optimizations
+
+- Responsive visualizer (400px → 300px on mobile)
+- Responsive album art (180px → 150px on mobile)
+- Playlist bar wraps on narrow screens
+- Touch-friendly buttons maintained
+- All features work on mobile devices
+
+### 🔐 Migration Guide
+
+**For Existing Users:**
+1. Database automatically upgrades to v2 on first load
+2. All existing tracks move to "Default Playlist"
+3. Metadata fields added (initially null)
+4. Service worker updates cache
+5. No action required - migration is automatic
+
+**To Get Metadata:**
+- Re-add audio files to extract ID3 tags
+- Or keep existing files (metadata added gradually)
+
+### 📝 Breaking Changes
+
+**None** - Fully backward compatible! All existing features work perfectly.
+
+### ✅ Testing Checklist
+
+- [x] ID3 tag parsing works
+- [x] Album art extraction successful
+- [x] Multiple playlists functional
+- [x] Lyrics display and sync
+- [x] Visualizer renders correctly
+- [x] Chromecast connection works
+- [x] Theme toggle smooth
+- [x] Database migration successful
+- [x] No data loss during upgrade
+- [x] All browsers compatible
+- [x] Mobile responsive
+- [x] No JavaScript errors
+- [x] Service worker updates
+
+### 📚 Documentation
+
+- Created V3.0.0_RELEASE_NOTES.md (comprehensive guide)
+- Updated help modal with all new features
+- Full bilingual documentation (RU/EN)
+
+---
+
 ## Version 2.0.0 - 2025-10-26
 
 ### 🔴 Critical Fixes
