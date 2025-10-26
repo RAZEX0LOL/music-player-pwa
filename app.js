@@ -537,6 +537,7 @@ class MusicPlayer {
 
         // Visualizer
         this.visualizerActive = false;
+        this.visualizerWarningShown = false;
         this.audioContext = null;
         this.analyser = null;
         this.dataArray = null;
@@ -644,17 +645,25 @@ class MusicPlayer {
 
         // Keep AudioContext active for background/lock screen playback
         document.addEventListener('visibilitychange', () => {
+            // Try to resume when page becomes visible
             if (this.audioContext && this.audioContext.state === 'suspended' && !document.hidden) {
-                this.audioContext.resume();
+                this.audioContext.resume().catch(err => console.log('Resume on visibility failed:', err));
             }
         });
 
         // Resume AudioContext when page becomes active (for lock screen)
         window.addEventListener('focus', () => {
             if (this.audioContext && this.audioContext.state === 'suspended') {
-                this.audioContext.resume();
+                this.audioContext.resume().catch(err => console.log('Resume on focus failed:', err));
             }
         });
+
+        // Aggressive AudioContext resume - check every second while playing
+        setInterval(() => {
+            if (this.audioContext && this.isPlaying && this.audioContext.state === 'suspended') {
+                this.audioContext.resume().catch(err => console.log('Interval resume failed:', err));
+            }
+        }, 1000);
 
         // New feature event listeners
         if (this.shuffleBtn) {
@@ -1077,15 +1086,28 @@ class MusicPlayer {
             return;
         }
 
-        // Shuffle mode
+        // Calculate next index
+        let nextIndex;
         if (this.shuffleMode) {
-            const randomIndex = Math.floor(Math.random() * this.playlist.length);
-            this.currentIndex = randomIndex;
+            nextIndex = Math.floor(Math.random() * this.playlist.length);
         } else {
-            // Normal mode
-            this.currentIndex = (this.currentIndex + 1) % this.playlist.length;
+            nextIndex = this.currentIndex + 1;
         }
 
+        // Check if we've reached the end
+        if (nextIndex >= this.playlist.length) {
+            if (this.repeatMode === 'all') {
+                // Loop back to start
+                nextIndex = 0;
+            } else {
+                // repeatMode === 'none' - stop playing
+                this.audio.pause();
+                this.vinylDisc.classList.remove('spinning');
+                return;
+            }
+        }
+
+        this.currentIndex = nextIndex;
         await this.playTrackAtIndex(this.currentIndex);
     }
 
@@ -1786,6 +1808,15 @@ class MusicPlayer {
         if (this.visualizerActive) {
             // Setup visualizer on first use (lazy initialization)
             if (!this.audioContext) {
+                // Warn mobile users about potential lock screen issues
+                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                if (isMobile && !this.visualizerWarningShown) {
+                    this.visualizerWarningShown = true;
+                    const warning = this.lang === 'ru'
+                        ? '⚠️ Внимание: визуализатор может мешать воспроизведению на заблокированном экране. Если музыка останавливается при блокировке, отключите визуализатор и перезагрузите страницу.'
+                        : '⚠️ Warning: visualizer may interfere with lock screen playback. If music stops when locking screen, disable visualizer and reload the page.';
+                    ErrorHandler.notify(warning, null, 'warning');
+                }
                 this.setupVisualizer();
             }
 
