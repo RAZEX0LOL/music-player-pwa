@@ -138,7 +138,7 @@ class ErrorHandler {
 class MusicDB {
     constructor() {
         this.dbName = 'MusicPlayerDB';
-        this.version = 2; // Upgraded for playlists support
+        this.version = 3; // v3: Fixed playlistId index creation
         this.db = null;
     }
 
@@ -158,8 +158,9 @@ class MusicDB {
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
                 const oldVersion = event.oldVersion;
+                const transaction = event.target.transaction;
 
-                // Create tracks store
+                // Version 1: Create tracks store
                 if (!db.objectStoreNames.contains('tracks')) {
                     const objectStore = db.createObjectStore('tracks', { keyPath: 'id', autoIncrement: true });
                     objectStore.createIndex('name', 'name', { unique: false });
@@ -167,37 +168,66 @@ class MusicDB {
                     objectStore.createIndex('playlistId', 'playlistId', { unique: false });
                 }
 
-                // Create playlists store (version 2+)
-                if (oldVersion < 2 && !db.objectStoreNames.contains('playlists')) {
-                    const playlistStore = db.createObjectStore('playlists', { keyPath: 'id' });
-                    playlistStore.createIndex('name', 'name', { unique: false });
-                    playlistStore.createIndex('createdDate', 'createdDate', { unique: false });
+                // Version 2+: Add playlist support
+                if (oldVersion < 2) {
+                    // Create playlists store
+                    if (!db.objectStoreNames.contains('playlists')) {
+                        const playlistStore = db.createObjectStore('playlists', { keyPath: 'id' });
+                        playlistStore.createIndex('name', 'name', { unique: false });
+                        playlistStore.createIndex('createdDate', 'createdDate', { unique: false });
 
-                    // Create default playlist
-                    const transaction = event.target.transaction;
-                    const store = transaction.objectStore('playlists');
-                    store.add({
-                        id: 'default',
-                        name: 'Default Playlist',
-                        createdDate: new Date().toISOString()
-                    });
+                        // Create default playlist
+                        playlistStore.add({
+                            id: 'default',
+                            name: 'Default Playlist',
+                            createdDate: new Date().toISOString()
+                        });
+                    }
+
+                    // Add playlistId index to tracks if it doesn't exist
+                    if (db.objectStoreNames.contains('tracks')) {
+                        const tracksStore = transaction.objectStore('tracks');
+                        if (!tracksStore.indexNames.contains('playlistId')) {
+                            tracksStore.createIndex('playlistId', 'playlistId', { unique: false });
+                        }
+
+                        // Migrate existing tracks to default playlist
+                        tracksStore.openCursor().onsuccess = (cursorEvent) => {
+                            const cursor = cursorEvent.target.result;
+                            if (cursor) {
+                                const track = cursor.value;
+                                if (!track.playlistId) {
+                                    track.playlistId = 'default';
+                                    cursor.update(track);
+                                }
+                                cursor.continue();
+                            }
+                        };
+                    }
                 }
 
-                // Migrate existing tracks to default playlist (version 2+)
-                if (oldVersion < 2 && db.objectStoreNames.contains('tracks')) {
-                    const transaction = event.target.transaction;
-                    const tracksStore = transaction.objectStore('tracks');
-                    tracksStore.openCursor().onsuccess = (cursorEvent) => {
-                        const cursor = cursorEvent.target.result;
-                        if (cursor) {
-                            const track = cursor.value;
-                            if (!track.playlistId) {
-                                track.playlistId = 'default';
-                                cursor.update(track);
-                            }
-                            cursor.continue();
+                // Version 3: Ensure playlistId index exists (fix for buggy v2)
+                if (oldVersion === 2 && oldVersion < 3) {
+                    if (db.objectStoreNames.contains('tracks')) {
+                        const tracksStore = transaction.objectStore('tracks');
+                        if (!tracksStore.indexNames.contains('playlistId')) {
+                            tracksStore.createIndex('playlistId', 'playlistId', { unique: false });
+                            console.log('✅ Fixed missing playlistId index');
                         }
-                    };
+
+                        // Ensure all tracks have playlistId
+                        tracksStore.openCursor().onsuccess = (cursorEvent) => {
+                            const cursor = cursorEvent.target.result;
+                            if (cursor) {
+                                const track = cursor.value;
+                                if (!track.playlistId) {
+                                    track.playlistId = 'default';
+                                    cursor.update(track);
+                                }
+                                cursor.continue();
+                            }
+                        };
+                    }
                 }
             };
         });
@@ -1633,37 +1663,64 @@ class MusicPlayer {
 
         this.analyser.getByteFrequencyData(this.dataArray);
 
-        // Clear canvas
-        ctx.clearRect(0, 0, WIDTH, HEIGHT);
+        // Create dark gradient background
+        const bgGradient = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+        bgGradient.addColorStop(0, 'rgba(26, 26, 46, 0.95)');
+        bgGradient.addColorStop(1, 'rgba(22, 33, 62, 0.95)');
+        ctx.fillStyle = bgGradient;
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-        // Draw circular visualizer
-        const centerX = WIDTH / 2;
-        const centerY = HEIGHT / 2;
-        const radius = Math.min(WIDTH, HEIGHT) / 3;
-
-        const barCount = this.dataArray.length;
-        const barWidth = (Math.PI * 2) / barCount;
+        // Symmetrical bar visualizer (mirror effect)
+        const barCount = 64; // Use 64 bars for smooth appearance
+        const barWidth = (WIDTH / barCount) * 0.8; // 80% width with gaps
+        const gap = (WIDTH / barCount) * 0.2;
 
         for (let i = 0; i < barCount; i++) {
-            const barHeight = (this.dataArray[i] / 255) * radius;
-            const angle = i * barWidth;
+            // Sample data array (map 128 values to 64 bars)
+            const dataIndex = Math.floor((i / barCount) * this.dataArray.length);
+            const value = this.dataArray[dataIndex];
 
-            const x1 = centerX + Math.cos(angle) * radius;
-            const y1 = centerY + Math.sin(angle) * radius;
-            const x2 = centerX + Math.cos(angle) * (radius + barHeight);
-            const y2 = centerY + Math.sin(angle) * (radius + barHeight);
+            // Smooth the values
+            const barHeight = (value / 255) * (HEIGHT / 2) * 0.8;
 
-            const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
-            gradient.addColorStop(0, '#667eea');
-            gradient.addColorStop(1, '#764ba2');
+            // X position
+            const x = (i * (barWidth + gap)) + gap / 2;
 
-            ctx.strokeStyle = gradient;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(x1, y1);
-            ctx.lineTo(x2, y2);
-            ctx.stroke();
+            // Create gradient for each bar
+            const gradient = ctx.createLinearGradient(0, HEIGHT / 2 - barHeight, 0, HEIGHT / 2 + barHeight);
+
+            // Color based on frequency (low = purple, mid = blue, high = cyan)
+            const hue = 240 + (i / barCount) * 60; // 240 (blue) to 300 (purple/magenta)
+            const saturation = 70 + (value / 255) * 30;
+            const lightness = 50 + (value / 255) * 20;
+
+            gradient.addColorStop(0, `hsla(${hue}, ${saturation}%, ${lightness}%, 0.9)`);
+            gradient.addColorStop(0.5, `hsla(${hue}, ${saturation}%, ${lightness + 10}%, 1)`);
+            gradient.addColorStop(1, `hsla(${hue}, ${saturation}%, ${lightness}%, 0.9)`);
+
+            ctx.fillStyle = gradient;
+
+            // Add glow effect
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.8)`;
+
+            // Draw top bar (above center)
+            ctx.fillRect(x, HEIGHT / 2 - barHeight, barWidth, barHeight);
+
+            // Draw bottom bar (below center - mirror)
+            ctx.fillRect(x, HEIGHT / 2, barWidth, barHeight);
         }
+
+        // Reset shadow
+        ctx.shadowBlur = 0;
+
+        // Draw center line
+        ctx.strokeStyle = 'rgba(102, 126, 234, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, HEIGHT / 2);
+        ctx.lineTo(WIDTH, HEIGHT / 2);
+        ctx.stroke();
 
         requestAnimationFrame(() => this.drawVisualizer());
     }

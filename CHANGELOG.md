@@ -1,5 +1,70 @@
 # Changelog
 
+## Version 3.0.2 - 2025-10-26
+
+### 🎨 Visual Improvement
+
+**Redesigned Audio Visualizer**
+
+- **Changed**: Circular radial visualizer → Modern symmetrical bar design
+- **New Design Features**:
+  - Mirror effect (symmetrical top and bottom)
+  - 64 smooth animated bars
+  - Dynamic color gradient (purple to cyan based on frequency)
+  - Glow effects on each bar
+  - Dark gradient background
+  - Center line separator
+  - Rounded corners with blue glow border
+
+**Technical Improvements**:
+- Better frequency mapping (128 data points → 64 bars)
+- HSL color system for dynamic colors
+- Shadow blur for glow effects
+- Smoother animations at 60fps
+
+**Why Better?**:
+- More professional appearance
+- Clearer frequency representation
+- Better matches modern music player aesthetics
+- More engaging visual experience
+
+**Files Modified**: `app.js`, `styles.css`, `sw.js`
+
+---
+
+## Version 3.0.1 - 2025-10-26
+
+### 🐛 Critical Bug Fix
+
+**Fixed: Tracks not appearing after adding them**
+
+- **Issue**: Users upgrading from v2.0 couldn't see tracks after adding them
+- **Root Cause**: Missing `playlistId` index in database for existing users
+- **Solution**:
+  - Bumped database version to 3
+  - Added explicit index existence check before creation
+  - Added v2→v3 migration path to fix broken v2 databases
+  - Updated service worker cache to v10-fixed
+
+### Technical Details
+
+- Database version: 2 → 3
+- Service worker cache: v9-advanced → v10-fixed
+- Files modified: `app.js`, `sw.js`
+- Migration logic improved to handle all upgrade paths
+
+### Migration Paths
+
+- New users: DB v3 with all indexes ✅
+- v2.0 → v3.0.1: Index created automatically ✅
+- Broken v3.0.0 → v3.0.1: Index fixed on refresh ✅
+
+### User Action Required
+
+**Hard refresh the page** (Ctrl+Shift+R or Cmd+Shift+R) to get the fix.
+
+---
+
 ## Version 3.0.0 - 2025-10-26
 
 ### 🎉 Major Feature Release - Advanced Media Features
