@@ -1,4 +1,4 @@
-const CACHE_NAME = 'music-player-v11-visualizer';
+const CACHE_NAME = 'music-player-v12-lockscreen';
 const urlsToCache = [
     './',
     './index.html',

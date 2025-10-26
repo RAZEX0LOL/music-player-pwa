@@ -1,5 +1,35 @@
 # Changelog
 
+## Version 3.0.3 - 2025-10-26
+
+### 🔧 Lock Screen Controls Fix
+
+**Fixed: Lock screen controls not working properly**
+
+- **Issue**: Music controls on lock screen/notification area weren't updating properly
+- **Root Cause**: Missing Media Session playback state updates
+- **Solution**:
+  - Added 'play' and 'pause' event listeners to audio element
+  - Automatic Media Session playback state updates ('playing' / 'paused')
+  - Synchronized isPlaying state with actual audio playback
+  - Removed redundant manual state updates throughout code
+
+**Now Works:**
+- ✅ Lock screen controls update in real-time
+- ✅ Play/Pause buttons work from lock screen
+- ✅ Previous/Next track controls work
+- ✅ Track info displays with album art
+- ✅ Seek controls work from notifications
+
+**Platforms:**
+- Android: Notification controls ✅
+- iOS: Lock screen controls ✅
+- Desktop: Media keys & notification center ✅
+
+**Files Modified**: `app.js`, `sw.js`
+
+---
+
 ## Version 3.0.2 - 2025-10-26
 
 ### 🎨 Visual Improvement

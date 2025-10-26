@@ -617,6 +617,23 @@ class MusicPlayer {
         this.audio.addEventListener('loadedmetadata', () => this.updateDuration());
         this.audio.addEventListener('ended', () => this.playNext());
 
+        // Media Session playback state updates for lock screen
+        this.audio.addEventListener('play', () => {
+            this.isPlaying = true;
+            this.updatePlayButton();
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.playbackState = 'playing';
+            }
+        });
+
+        this.audio.addEventListener('pause', () => {
+            this.isPlaying = false;
+            this.updatePlayButton();
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.playbackState = 'paused';
+            }
+        });
+
         window.addEventListener('online', () => this.updateOnlineStatus(true));
         window.addEventListener('offline', () => this.updateOnlineStatus(false));
 
@@ -892,8 +909,7 @@ class MusicPlayer {
 
             if (deletedIndex === this.currentIndex) {
                 this.audio.pause();
-                this.isPlaying = false;
-                this.updatePlayButton();
+                // Note: isPlaying and updatePlayButton() handled by pause event listener
             }
 
             await this.loadPlaylist();
@@ -921,8 +937,7 @@ class MusicPlayer {
 
         try {
             this.audio.pause();
-            this.isPlaying = false;
-            this.updatePlayButton();
+            // Note: isPlaying and updatePlayButton() handled by pause event listener
 
             await this.db.clearAll();
             await this.loadPlaylist();
@@ -976,15 +991,13 @@ class MusicPlayer {
 
             try {
                 await this.audio.play();
-                this.isPlaying = true;
+                // Note: isPlaying state updated by 'play' event listener
             } catch (playError) {
                 console.error('Playback error:', playError);
                 ErrorHandler.notify(I18N[this.lang].errorPlayback, playError, 'error');
-                // Try to play again (sometimes first attempt fails on mobile)
-                this.isPlaying = false;
             }
 
-            this.updatePlayButton();
+            // Note: updatePlayButton() handled by event listener
             this.updateTrackMetadata(track); // v3.0: Update with full metadata
             this.vinylDisc.classList.add('spinning');
             this.renderPlaylist();
@@ -1013,12 +1026,15 @@ class MusicPlayer {
             this.audio.pause();
             this.vinylDisc.classList.remove('spinning');
         } else {
-            await this.audio.play();
-            this.vinylDisc.classList.add('spinning');
+            try {
+                await this.audio.play();
+                this.vinylDisc.classList.add('spinning');
+            } catch (error) {
+                console.error('Play error:', error);
+            }
         }
 
-        this.isPlaying = !this.isPlaying;
-        this.updatePlayButton();
+        // Note: isPlaying state and updatePlayButton() are now handled by audio event listeners
     }
 
     async playNext() {
@@ -1367,8 +1383,7 @@ class MusicPlayer {
         // Set new timer
         this.sleepTimer = setTimeout(() => {
             this.audio.pause();
-            this.isPlaying = false;
-            this.updatePlayButton();
+            // Note: isPlaying and updatePlayButton() handled by pause event listener
             this.vinylDisc.classList.remove('spinning');
             ErrorHandler.notify('Sleep timer ended', null, 'info');
         }, min * 60 * 1000);
