@@ -516,6 +516,7 @@ class MusicPlayer {
     constructor() {
         this.db = new MusicDB();
         this.audio = document.getElementById('audioPlayer');
+        this.audio.loop = false; // Explicitly disable looping - handled manually via repeatMode
         this.playlist = [];
         this.filteredPlaylist = [];
         this.currentIndex = 0;
@@ -618,6 +619,14 @@ class MusicPlayer {
         this.audio.addEventListener('timeupdate', () => this.updateProgress());
         this.audio.addEventListener('loadedmetadata', () => this.updateDuration());
         this.audio.addEventListener('ended', () => this.playNext());
+
+        // Prevent audio stalling on lock screen
+        this.audio.addEventListener('stalled', () => {
+            console.log('Audio stalled, attempting to resume...');
+            if (this.isPlaying && this.audio.paused) {
+                this.audio.play().catch(err => console.log('Resume from stall failed:', err));
+            }
+        });
 
         // Media Session playback state updates for lock screen
         this.audio.addEventListener('play', () => {

@@ -7,6 +7,7 @@
   "background_color": "#1a1a2e",
   "theme_color": "#16213e",
   "orientation": "portrait-primary",
+  "categories": ["music", "entertainment"],
   "icons": [
     {
       "src": "icon.svg",
