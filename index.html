@@ -16,11 +16,8 @@
     <link rel="manifest" href="./manifest.json">
     <link rel="stylesheet" href="./styles.css">
 
-    <!-- ID3 Tag Parser -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
-
-    <!-- Google Cast SDK -->
-    <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
+    <!-- ID3 Tag Parser (cached for offline metadata parsing) -->
+    <script src="./vendor/jsmediatags.min.js"></script>
 </head>
 <body data-theme="dark" data-accent="indigo">
     <!-- SVG icon sprite (used via <use href="#icon-...">) -->
@@ -209,10 +206,10 @@
     <audio id="audioPlayer" preload="auto" playsinline></audio>
 
     <!-- Settings Modal -->
-    <div id="settingsModal" class="modal">
-        <div class="modal-content">
+    <div id="settingsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
+        <div class="modal-content" tabindex="-1">
             <div class="modal-header">
-                <h2>Настройки</h2>
+                <h2 id="settingsModalTitle">Настройки</h2>
                 <button class="modal-close" data-modal="settingsModal" aria-label="Close">
                     <svg class="icon"><use href="#icon-close"/></svg>
                 </button>
@@ -256,10 +253,10 @@
     </div>
 
     <!-- Help Modal -->
-    <div id="helpModal" class="modal">
-        <div class="modal-content">
+    <div id="helpModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle">
+        <div class="modal-content" tabindex="-1">
             <div class="modal-header">
-                <h2>Инструкция</h2>
+                <h2 id="helpModalTitle">Инструкция</h2>
                 <button class="modal-close" data-modal="helpModal" aria-label="Close">
                     <svg class="icon"><use href="#icon-close"/></svg>
                 </button>

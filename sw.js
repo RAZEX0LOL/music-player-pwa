@@ -1,11 +1,12 @@
-const CACHE_NAME = 'music-player-v16-ui-overhaul';
+const CACHE_NAME = 'music-player-v17-responsive-offline-fixes';
 const urlsToCache = [
     './',
     './index.html',
     './styles.css',
     './app.js',
     './manifest.json',
-    './icon.svg'
+    './icon.svg',
+    './vendor/jsmediatags.min.js'
 ];
 
 // Install service worker and cache assets

@@ -54,6 +54,13 @@ const I18N = {
         unknownAlbum: 'Неизвестный альбом',
         visualizerOn: 'Визуализатор включён',
         visualizerOff: 'Визуализатор выключён',
+        noMatches: 'Ничего не найдено',
+        tryDifferentSearch: 'Попробуйте другой запрос',
+        exportFailed: 'Ошибка экспорта',
+        importFailed: 'Ошибка импорта',
+        importMetadataOnly: 'Этот файл содержит только список треков без аудиоданных',
+        importInvalidFile: 'Некорректный файл плейлиста',
+        tracksImported: 'Импортировано треков',
         lyricsOn: 'Текст песни открыт',
         lyricsOff: 'Текст песни закрыт',
         noLyrics: 'Текст песни не найден',
@@ -109,6 +116,13 @@ const I18N = {
         unknownAlbum: 'Unknown Album',
         visualizerOn: 'Visualizer enabled',
         visualizerOff: 'Visualizer disabled',
+        noMatches: 'No matches found',
+        tryDifferentSearch: 'Try a different search term',
+        exportFailed: 'Export failed',
+        importFailed: 'Import failed',
+        importMetadataOnly: 'This file contains a track list without audio data',
+        importInvalidFile: 'Invalid playlist file',
+        tracksImported: 'Tracks imported',
         lyricsOn: 'Lyrics opened',
         lyricsOff: 'Lyrics closed',
         noLyrics: 'No lyrics found',
@@ -584,6 +598,7 @@ class MusicPlayer {
         this.castPlayer = null;
         this.isCasting = false;
         this.castBlobUrl = null; // Track Cast blob URL for cleanup
+        this.castConfigured = false;
 
         this.initElements();
         this.initEventListeners();
@@ -637,6 +652,7 @@ class MusicPlayer {
         this.settingsBtn = document.getElementById('settingsBtn');
         this.accentGrid = document.getElementById('accentGrid');
         this.visualizerCanvas = document.getElementById('visualizerCanvas');
+        this.albumArtContainer = document.querySelector('.album-art');
         this.albumArtImg = document.getElementById('albumArtImg');
         this.currentTrackAlbum = document.getElementById('currentTrackAlbum');
         this.lyricsPanel = document.getElementById('lyricsPanel');
@@ -800,7 +816,6 @@ class MusicPlayer {
             this.initTheme();
             this.updatePlayButton();
             // Don't setup visualizer until needed - prevents AudioContext suspension on lock screen
-            this.initCast();
         } catch (error) {
             console.error('Initialization error:', error);
             this.statusText.textContent = 'Ошибка инициализации';
@@ -960,8 +975,8 @@ class MusicPlayer {
         if (filteredPlaylist.length === 0) {
             this.trackList.innerHTML = `
                 <div class="empty-state">
-                    <p>No matches found</p>
-                    <p class="hint">Try a different search term</p>
+                    <p>${i18n.noMatches}</p>
+                    <p class="hint">${i18n.tryDifferentSearch}</p>
                 </div>
             `;
             return;
@@ -1083,6 +1098,9 @@ class MusicPlayer {
         if (this.albumArtImg) {
             this.albumArtImg.style.display = 'none';
             this.albumArtImg.removeAttribute('src');
+        }
+        if (this.albumArtContainer) {
+            this.albumArtContainer.classList.remove('visualizer-mode');
         }
         this.vinylDisc.style.display = 'block';
         this.vinylDisc.classList.remove('spinning');
@@ -1477,24 +1495,54 @@ class MusicPlayer {
         if (!this.searchTerm) {
             return this.playlist;
         }
-        return this.playlist.filter(track =>
-            track.name.toLowerCase().includes(this.searchTerm)
-        );
+        return this.playlist.filter(track => {
+            const searchable = [
+                track.name,
+                track.title,
+                track.artist,
+                track.album
+            ].filter(Boolean).join(' ').toLowerCase();
+            return searchable.includes(this.searchTerm);
+        });
     }
 
     // Export playlist to JSON
     async exportPlaylist() {
+        const i18n = I18N[this.lang];
         try {
-            const i18n = I18N[this.lang];
+            const currentPlaylistMeta = this.playlists.find(p => p.id === this.currentPlaylist);
+            const tracks = [];
+
+            for (const track of this.playlist) {
+                const trackData = await this.db.getTrack(track.id);
+                const arrayBuffer = await this.getStoredArrayBuffer(trackData);
+                if (!arrayBuffer) continue;
+
+                tracks.push({
+                    name: trackData.name,
+                    size: trackData.size || arrayBuffer.byteLength,
+                    type: trackData.type || 'audio/mpeg',
+                    addedDate: trackData.addedDate,
+                    artist: trackData.artist || null,
+                    album: trackData.album || null,
+                    title: trackData.title || null,
+                    year: trackData.year || null,
+                    genre: trackData.genre || null,
+                    albumArt: trackData.albumArt || null,
+                    lyrics: trackData.lyrics || null,
+                    data: this.arrayBufferToBase64(arrayBuffer)
+                });
+            }
+
             const data = {
-                version: 1,
+                type: 'music-player-pwa-playlist',
+                version: 2,
                 exportDate: new Date().toISOString(),
-                tracks: this.playlist.map(t => ({
-                    name: t.name,
-                    size: t.size,
-                    type: t.type,
-                    addedDate: t.addedDate
-                }))
+                playlist: {
+                    id: this.currentPlaylist,
+                    name: currentPlaylistMeta?.name || 'Playlist'
+                },
+                tracks
             };
 
             const json = JSON.stringify(data, null, 2);
@@ -1505,31 +1553,102 @@ class MusicPlayer {
             a.href = url;
             a.download = `music-playlist-${Date.now()}.json`;
             a.click();
+            a.remove();
 
-            URL.revokeObjectURL(url);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
             ErrorHandler.notify(i18n.playlistExported, null, 'success');
         } catch (error) {
-            ErrorHandler.notify('Export failed', error);
+            ErrorHandler.notify(i18n.exportFailed, error);
         }
     }
 
     // Import playlist from JSON
     async importPlaylist(event) {
+        const i18n = I18N[this.lang];
         try {
-            const i18n = I18N[this.lang];
             const file = event.target.files[0];
             if (!file) return;
 
             const text = await file.text();
             const data = JSON.parse(text);
 
-            // Show info about what was imported
-            ErrorHandler.notify(`${i18n.playlistImported}: ${data.tracks.length} ${i18n.tracks}`, null, 'success');
+            if (!data || !Array.isArray(data.tracks)) {
+                throw new Error(i18n.importInvalidFile);
+            }
+
+            if (data.tracks.length > 0 && data.tracks.every(track => !track.data)) {
+                throw new Error(i18n.importMetadataOnly);
+            }
+
+            const sourceName = data.playlist?.name || file.name.replace(/\.json$/i, '') || i18n.newPlaylist;
+            const dateLabel = new Date().toLocaleDateString(this.lang === 'ru' ? 'ru-RU' : 'en-US');
+            const playlist = await this.db.createPlaylist(`${sourceName} (${dateLabel})`);
+            let importedCount = 0;
+
+            for (const track of data.tracks) {
+                if (!track.data || !track.name) continue;
+
+                const arrayBuffer = this.base64ToArrayBuffer(track.data);
+                const importedFile = new File(
+                    [arrayBuffer],
+                    track.name,
+                    {
+                        type: track.type || 'audio/mpeg',
+                        lastModified: track.addedDate ? Date.parse(track.addedDate) || Date.now() : Date.now()
+                    }
+                );
+                const metadata = {
+                    artist: track.artist || null,
+                    album: track.album || null,
+                    title: track.title || null,
+                    year: track.year || null,
+                    genre: track.genre || null,
+                    albumArt: track.albumArt || null,
+                    lyrics: track.lyrics || null
+                };
+
+                await this.db.addTrack(importedFile, playlist.id, metadata);
+                importedCount++;
+            }
+
+            this.currentPlaylist = playlist.id;
+            await this.loadPlaylists();
+            this.playlistSelector.value = playlist.id;
+            await this.loadPlaylist();
+
+            ErrorHandler.notify(`${i18n.tracksImported}: ${importedCount}`, null, 'success');
         } catch (error) {
-            ErrorHandler.notify('Import failed', error);
+            ErrorHandler.notify(error.message || i18n.importFailed, error);
         }
 
         event.target.value = '';
+    }
+
+    async getStoredArrayBuffer(trackData) {
+        if (!trackData) return null;
+        if (trackData.arrayBuffer) return trackData.arrayBuffer;
+        if (trackData.blob && trackData.blob.arrayBuffer) return trackData.blob.arrayBuffer();
+        if (trackData.file && trackData.file.arrayBuffer) return trackData.file.arrayBuffer();
+        return null;
+    }
+
+    arrayBufferToBase64(arrayBuffer) {
+        const bytes = new Uint8Array(arrayBuffer);
+        const chunkSize = 0x8000;
+        let binary = '';
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+        }
+        return btoa(binary);
+    }
+
+    base64ToArrayBuffer(base64) {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes.buffer;
     }
 
     // Sleep timer functionality (toggle: opens dialog, or cancels if already armed)
@@ -1947,6 +2066,9 @@ class MusicPlayer {
             if (this.visualizerCanvas) {
                 this.visualizerCanvas.style.display = 'block';
             }
+            if (this.albumArtContainer) {
+                this.albumArtContainer.classList.add('visualizer-mode');
+            }
             this.vinylDisc.style.display = 'none';
             if (this.albumArtImg) {
                 this.albumArtImg.style.display = 'none';
@@ -1962,6 +2084,9 @@ class MusicPlayer {
         } else {
             if (this.visualizerCanvas) {
                 this.visualizerCanvas.style.display = 'none';
+            }
+            if (this.albumArtContainer) {
+                this.albumArtContainer.classList.remove('visualizer-mode');
             }
             if (this.visualizerBtn) {
                 this.visualizerBtn.classList.remove('active');
@@ -2105,37 +2230,58 @@ class MusicPlayer {
 
     // Chromecast / Google Cast Support
     initCast() {
-        if (typeof cast === 'undefined' || !cast.framework) {
-            console.log('Cast framework not available');
+        if (!navigator.onLine) {
+            console.log('Cast framework skipped while offline');
             return;
         }
 
         window['__onGCastApiAvailable'] = (isAvailable) => {
             if (isAvailable) {
-                try {
-                    const castContext = cast.framework.CastContext.getInstance();
-                    castContext.setOptions({
-                        receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
-                        autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
-                    });
-
-                    // Show Cast button
-                    if (this.castBtn) {
-                        this.castBtn.style.display = 'flex';
-                    }
-
-                    // Listen for Cast state changes
-                    castContext.addEventListener(
-                        cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
-                        (event) => this.handleCastSessionChange(event)
-                    );
-
-                    console.log('Cast initialized successfully');
-                } catch (error) {
-                    console.error('Cast initialization error:', error);
-                }
+                this.configureCast();
             }
         };
+
+        if (typeof cast !== 'undefined' && cast.framework) {
+            this.configureCast();
+            return;
+        }
+
+        if (document.getElementById('googleCastSdk')) return;
+
+        const script = document.createElement('script');
+        script.id = 'googleCastSdk';
+        script.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
+        script.async = true;
+        script.onerror = () => console.log('Cast framework not available');
+        document.head.appendChild(script);
+    }
+
+    configureCast() {
+        if (typeof cast === 'undefined' || !cast.framework || typeof chrome === 'undefined') return;
+        if (this.castConfigured) return;
+
+        try {
+            const castContext = cast.framework.CastContext.getInstance();
+            castContext.setOptions({
+                receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+                autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+            });
+
+            // Show Cast button only after the SDK is ready.
+            if (this.castBtn) {
+                this.castBtn.style.display = 'flex';
+            }
+
+            castContext.addEventListener(
+                cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
+                (event) => this.handleCastSessionChange(event)
+            );
+
+            console.log('Cast initialized successfully');
+            this.castConfigured = true;
+        } catch (error) {
+            console.error('Cast initialization error:', error);
+        }
     }
 
     handleCastSessionChange(event) {
@@ -2246,6 +2392,33 @@ class MusicPlayer {
 
 // Modal functionality (help + settings)
 function initModals() {
+    let activeModal = null;
+    let lastFocusedElement = null;
+    const focusableSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+    function openModal(modal) {
+        lastFocusedElement = document.activeElement;
+        activeModal = modal;
+        modal.classList.add('show');
+        document.body.classList.add('modal-open');
+
+        const content = modal.querySelector('.modal-content');
+        if (content) {
+            content.focus();
+        }
+    }
+
+    function closeModal(modal) {
+        modal.classList.remove('show');
+        if (!document.querySelector('.modal.show')) {
+            document.body.classList.remove('modal-open');
+            activeModal = null;
+        }
+        if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+            lastFocusedElement.focus();
+        }
+    }
+
     const openMap = {
         helpBtn: 'helpModal',
         settingsBtn: 'settingsModal'
@@ -2255,7 +2428,12 @@ function initModals() {
         const btn = document.getElementById(btnId);
         const modal = document.getElementById(modalId);
         if (btn && modal) {
-            btn.addEventListener('click', () => modal.classList.add('show'));
+            btn.addEventListener('click', () => {
+                openModal(modal);
+                if (modalId === 'settingsModal' && window.player) {
+                    window.player.initCast();
+                }
+            });
         }
     });
 
@@ -2263,21 +2441,40 @@ function initModals() {
     document.querySelectorAll('.modal-close').forEach(btn => {
         btn.addEventListener('click', () => {
             const modal = document.getElementById(btn.dataset.modal);
-            if (modal) modal.classList.remove('show');
+            if (modal) closeModal(modal);
         });
     });
 
     // Close on backdrop click
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', (event) => {
-            if (event.target === modal) modal.classList.remove('show');
+            if (event.target === modal) closeModal(modal);
         });
     });
 
-    // Close on ESC
+    // Close on ESC and keep keyboard focus inside the open dialog.
     document.addEventListener('keydown', (event) => {
-        if (event.key !== 'Escape') return;
-        document.querySelectorAll('.modal.show').forEach(m => m.classList.remove('show'));
+        if (event.key === 'Escape') {
+            document.querySelectorAll('.modal.show').forEach(m => closeModal(m));
+            return;
+        }
+
+        if (event.key !== 'Tab' || !activeModal) return;
+
+        const focusable = Array.from(activeModal.querySelectorAll(focusableSelector))
+            .filter(el => !el.disabled && el.offsetParent !== null);
+        if (focusable.length === 0) return;
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
     });
 }
 

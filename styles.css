@@ -87,11 +87,17 @@ body {
     background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
     color: var(--text);
     min-height: 100vh;
-    padding: 20px;
+    min-height: 100dvh;
+    padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
     transition: background 0.3s ease, color 0.3s ease;
 }
 
+body.modal-open {
+    overflow: hidden;
+}
+
 .container {
+    width: 100%;
     max-width: 640px;
     margin: 0 auto;
 }
@@ -374,6 +380,11 @@ header h1 {
     height: 200px;
 }
 
+.album-art.visualizer-mode {
+    min-height: 320px;
+    height: auto;
+}
+
 .album-art-image {
     width: 200px;
     height: 200px;
@@ -383,8 +394,9 @@ header h1 {
 }
 
 .visualizer-canvas {
-    width: 320px;
-    height: 320px;
+    width: min(100%, 320px);
+    height: auto;
+    aspect-ratio: 1 / 1;
     max-width: 100%;
     border-radius: 12px;
     box-shadow: 0 10px 40px var(--accent-soft);
@@ -463,6 +475,10 @@ header h1 {
     color: var(--text);
     filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));
     overflow: visible;
+}
+
+.album-art.visualizer-mode .tonearm {
+    display: none;
 }
 
 .tonearm-group {
@@ -1153,12 +1169,79 @@ body.drag-over::before {
 /* ============================================
    RESPONSIVE
    ============================================ */
+@media (min-width: 1024px) {
+    body {
+        padding: max(28px, env(safe-area-inset-top)) max(32px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(32px, env(safe-area-inset-left));
+    }
+
+    .container {
+        max-width: 1180px;
+        display: grid;
+        grid-template-columns: minmax(360px, 480px) minmax(420px, 1fr);
+        grid-template-areas:
+            "header header"
+            "now add"
+            "now playlists"
+            "now search"
+            "controls tracks"
+            "lyrics tracks";
+        gap: 18px 24px;
+        align-items: start;
+    }
+
+    header {
+        grid-area: header;
+        margin-bottom: 4px;
+    }
+
+    .add-tracks-section {
+        grid-area: add;
+        margin-bottom: 0;
+    }
+
+    .playlists-bar {
+        grid-area: playlists;
+        margin-bottom: 0;
+    }
+
+    .search-controls {
+        grid-area: search;
+        margin-bottom: 0;
+    }
+
+    .now-playing {
+        grid-area: now;
+        margin-bottom: 0;
+    }
+
+    .player-controls {
+        grid-area: controls;
+        margin-bottom: 0;
+    }
+
+    .lyrics-panel {
+        grid-area: lyrics;
+        margin-bottom: 0;
+    }
+
+    .playlist {
+        grid-area: tracks;
+        min-height: 100%;
+    }
+
+    .track-list {
+        max-height: calc(100vh - 300px);
+        min-height: 420px;
+    }
+}
+
 @media (max-width: 600px) {
-    body { padding: 12px; }
+    body {
+        padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    }
 
     header h1 { font-size: 1.5em; }
 
-    .album-art,
     .vinyl-disc,
     .tonearm,
     .album-art-image {
@@ -1166,11 +1249,19 @@ body.drag-over::before {
         height: 170px;
     }
 
-    .album-art { min-height: 170px; }
+    .album-art {
+        width: 100%;
+        min-height: 170px;
+        height: 170px;
+    }
+
+    .album-art.visualizer-mode {
+        min-height: 260px;
+    }
 
     .visualizer-canvas {
-        width: 280px;
-        height: 280px;
+        width: min(100%, 260px);
+        height: auto;
     }
 
     .control-btn {
@@ -1180,8 +1271,8 @@ body.drag-over::before {
     }
 
     .control-btn-sm {
-        width: 40px;
-        height: 40px;
+        width: 44px;
+        height: 44px;
         font-size: 1.1em;
     }
 
@@ -1192,6 +1283,19 @@ body.drag-over::before {
     }
 
     .controls { gap: 10px; }
+
+    .control-icon-btn,
+    .delete-btn,
+    .modal-close,
+    .close-lyrics-btn,
+    .accent-swatch {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    .add-tracks-hint {
+        display: none;
+    }
 
     .modal-content {
         margin: 4vh auto;
@@ -1210,7 +1314,7 @@ body.drag-over::before {
     }
 
     .icon-btn {
-        width: 36px;
-        height: 36px;
+        width: 44px;
+        height: 44px;
     }
 }
