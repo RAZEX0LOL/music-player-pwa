@@ -22,17 +22,55 @@
     <!-- Google Cast SDK -->
     <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 </head>
-<body>
+<body data-theme="dark" data-accent="indigo">
+    <!-- SVG icon sprite (used via <use href="#icon-...">) -->
+    <svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+        <defs>
+            <symbol id="icon-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5v14l11-7z"/></symbol>
+            <symbol id="icon-pause" viewBox="0 0 24 24"><path fill="currentColor" d="M6 5h4v14H6zM14 5h4v14h-4z"/></symbol>
+            <symbol id="icon-prev" viewBox="0 0 24 24"><path fill="currentColor" d="M6 6h2v12H6zM9.5 12l9.5 6V6z"/></symbol>
+            <symbol id="icon-next" viewBox="0 0 24 24"><path fill="currentColor" d="M16 6h2v12h-2zM5 6v12l9.5-6z"/></symbol>
+            <symbol id="icon-shuffle" viewBox="0 0 24 24"><path fill="currentColor" d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></symbol>
+            <symbol id="icon-repeat" viewBox="0 0 24 24"><path fill="currentColor" d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></symbol>
+            <symbol id="icon-repeat-one" viewBox="0 0 24 24"><path fill="currentColor" d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4zm-4-1V8h-1l-2 1v1h1.5v6H13z"/></symbol>
+            <symbol id="icon-volume" viewBox="0 0 24 24"><path fill="currentColor" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4.03v8.05A4.5 4.5 0 0 0 16.5 12zM14 3.23v2.06a7 7 0 0 1 0 13.42v2.06a9 9 0 0 0 0-17.54z"/></symbol>
+            <symbol id="icon-search" viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></symbol>
+            <symbol id="icon-folder-add" viewBox="0 0 24 24"><path fill="currentColor" d="M20 6h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm-3 8h-3v3h-2v-3H9v-2h3V9h2v3h3v2z"/></symbol>
+            <symbol id="icon-trash" viewBox="0 0 24 24"><path fill="currentColor" d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></symbol>
+            <symbol id="icon-plus" viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></symbol>
+            <symbol id="icon-edit" viewBox="0 0 24 24"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></symbol>
+            <symbol id="icon-export" viewBox="0 0 24 24"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></symbol>
+            <symbol id="icon-import" viewBox="0 0 24 24"><path fill="currentColor" d="M19 13v6H5v-6H3v6c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-6h-2zm-7 1 4-4h-3V3h-2v7H8l4 4z"/></symbol>
+            <symbol id="icon-moon" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.39 5.39 0 0 1-4.4 2.26 5.4 5.4 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/></symbol>
+            <symbol id="icon-sun" viewBox="0 0 24 24"><path fill="currentColor" d="M6.76 4.84 4.96 3.05 3.55 4.46l1.79 1.79 1.42-1.41zM4 10.5H1v2h3v-2zm9-9.95h-2V3.5h2V.55zm7.45 3.91-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.7 1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM20 10.5v2h3v-2h-3zm-8-5a6 6 0 1 0 0 12 6 6 0 0 0 0-12zm-1 16.95h2V19.5h-2v2.95zm-7.45-3.91 1.41 1.41 1.79-1.8-1.41-1.41-1.79 1.8z"/></symbol>
+            <symbol id="icon-help" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 17h-2v-2h2v2zm2.07-7.75-.9.92A3.4 3.4 0 0 0 13 14.5h-2v-.5c0-.88.36-1.68.93-2.25l1.24-1.26A1.99 1.99 0 0 0 12 7.5a2 2 0 0 0-2 2H8a4 4 0 0 1 8 0c0 .88-.36 1.68-.93 2.25z"/></symbol>
+            <symbol id="icon-settings" viewBox="0 0 24 24"><path fill="currentColor" d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.32-.02-.63-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.49.49 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.55-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87c-.12.21-.07.47.12.61l2.03 1.58c-.04.31-.07.63-.07.94 0 .32.03.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.39.31.59.22l2.39-.96c.5.39 1.03.71 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.09.49 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 15.6 12 3.6 3.6 0 0 1 12 15.6z"/></symbol>
+            <symbol id="icon-close" viewBox="0 0 24 24"><path fill="currentColor" d="m19 6.41-1.41-1.41L12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></symbol>
+            <symbol id="icon-timer" viewBox="0 0 24 24"><path fill="currentColor" d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61 1.42-1.42a8.94 8.94 0 0 0-1.41-1.41l-1.42 1.42A9 9 0 1 0 12 22a9 9 0 0 0 7.03-14.61zM12 20a7 7 0 1 1 0-14 7 7 0 0 1 0 14z"/></symbol>
+            <symbol id="icon-visualizer" viewBox="0 0 24 24"><path fill="currentColor" d="M3 12h2v9H3zm4-6h2v15H7zm4-3h2v18h-2zm4 6h2v12h-2zm4 3h2v9h-2z"/></symbol>
+            <symbol id="icon-mic" viewBox="0 0 24 24"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5.3-3a5.3 5.3 0 0 1-10.6 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-1.7z"/></symbol>
+            <symbol id="icon-cast" viewBox="0 0 24 24"><path fill="currentColor" d="M21 3H3a2 2 0 0 0-2 2v3h2V5h18v14h-7v2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM1 18v3h3a3 3 0 0 0-3-3zm0-4v2c2.76 0 5 2.24 5 5h2A7 7 0 0 0 1 14zm0-4v2a9 9 0 0 1 9 9h2A11 11 0 0 0 1 10z"/></symbol>
+            <symbol id="icon-tonearm" viewBox="0 0 100 100"><circle cx="86" cy="14" r="7" fill="currentColor"/><rect x="40" y="10" width="50" height="6" rx="3" fill="currentColor" transform="rotate(35 65 13)"/><circle cx="50" cy="50" r="4" fill="currentColor"/></symbol>
+        </defs>
+    </svg>
+
     <div class="container">
         <header>
-            <h1>🎵 Моя Музыка</h1>
+            <h1>Моя Музыка</h1>
             <div class="header-controls">
-                <div class="status">
-                    <span id="statusIndicator" class="online">●</span>
+                <div class="status" id="statusBadge" title="Готов">
+                    <span id="statusIndicator" class="online" aria-hidden="true">●</span>
                     <span id="statusText">Готов</span>
                 </div>
-                <button id="themeToggle" class="icon-btn" title="Toggle theme" aria-label="Toggle dark/light theme">🌓</button>
-                <button id="helpBtn" class="help-btn" title="Инструкция / Help" aria-label="Show help">❓</button>
+                <button id="themeToggle" class="icon-btn" title="Сменить тему" aria-label="Toggle dark/light theme">
+                    <svg class="icon"><use href="#icon-moon"/></svg>
+                </button>
+                <button id="settingsBtn" class="icon-btn" title="Настройки" aria-label="Open settings">
+                    <svg class="icon"><use href="#icon-settings"/></svg>
+                </button>
+                <button id="helpBtn" class="icon-btn" title="Инструкция" aria-label="Show help">
+                    <svg class="icon"><use href="#icon-help"/></svg>
+                </button>
             </div>
         </header>
 
@@ -40,39 +78,43 @@
             <input type="file" id="fileInput" accept="audio/*,video/mp4,video/x-m4v,.mp3,.wav,.ogg,.m4a,.flac,.mp4,.m4v,.aac,.wma,.webm" multiple hidden>
             <input type="file" id="importFileInput" accept=".json" hidden>
             <button id="addTracksBtn" class="btn-primary" aria-label="Add audio tracks">
-                <span>📁 Добавить треки</span>
+                <svg class="icon"><use href="#icon-folder-add"/></svg>
+                <span>Добавить треки</span>
             </button>
-            <button id="clearAllBtn" class="btn-danger" aria-label="Clear all tracks">
-                <span>🗑️ Очистить всё</span>
+            <button id="clearAllBtn" class="btn-danger" aria-label="Clear all tracks in current playlist">
+                <svg class="icon"><use href="#icon-trash"/></svg>
+                <span>Очистить плейлист</span>
             </button>
-            <p style="font-size: 0.85em; color: rgba(255,255,255,0.6); margin-top: 8px; text-align: center;">
-                Или перетащите аудио/видео файлы в окно (работает офлайн!)
-            </p>
+            <p class="add-tracks-hint">Или перетащите аудио/видео файлы в окно (работает офлайн!)</p>
         </div>
 
         <!-- Playlists -->
         <div class="playlists-bar">
             <select id="playlistSelector" class="playlist-selector" aria-label="Select playlist">
-                <option value="default">📂 Default Playlist</option>
+                <option value="default">Default Playlist</option>
             </select>
-            <button id="newPlaylistBtn" class="control-icon-btn" title="New playlist" aria-label="Create new playlist">➕</button>
-            <button id="renamePlaylistBtn" class="control-icon-btn" title="Rename playlist" aria-label="Rename current playlist">✏️</button>
-            <button id="deletePlaylistBtn" class="control-icon-btn" title="Delete playlist" aria-label="Delete current playlist">🗑️</button>
+            <button id="newPlaylistBtn" class="control-icon-btn" title="Создать плейлист" aria-label="Create new playlist">
+                <svg class="icon"><use href="#icon-plus"/></svg>
+            </button>
+            <button id="renamePlaylistBtn" class="control-icon-btn" title="Переименовать плейлист" aria-label="Rename current playlist">
+                <svg class="icon"><use href="#icon-edit"/></svg>
+            </button>
+            <button id="deletePlaylistBtn" class="control-icon-btn" title="Удалить плейлист" aria-label="Delete current playlist">
+                <svg class="icon"><use href="#icon-trash"/></svg>
+            </button>
+            <button id="exportBtn" class="control-icon-btn" title="Экспорт плейлиста" aria-label="Export playlist to JSON">
+                <svg class="icon"><use href="#icon-export"/></svg>
+            </button>
+            <button id="importBtn" class="control-icon-btn" title="Импорт плейлиста" aria-label="Import playlist from JSON">
+                <svg class="icon"><use href="#icon-import"/></svg>
+            </button>
         </div>
 
-        <!-- Search and Controls -->
+        <!-- Search -->
         <div class="search-controls">
-            <input type="search" id="searchInput" class="search-input" placeholder="🔍 Поиск треков... / Search tracks..." aria-label="Search tracks">
-            <div class="control-buttons">
-                <button id="shuffleBtn" class="control-icon-btn" title="Shuffle (S)" aria-label="Toggle shuffle mode">🔀</button>
-                <button id="repeatBtn" class="control-icon-btn" title="Repeat (R)" aria-label="Cycle repeat mode">🔁</button>
-                <button id="speedBtn" class="control-icon-btn" title="Playback speed" aria-label="Change playback speed">1x</button>
-                <button id="sleepTimerBtn" class="control-icon-btn" title="Sleep timer" aria-label="Set sleep timer">⏰</button>
-                <button id="visualizerBtn" class="control-icon-btn" title="Audio visualizer" aria-label="Toggle audio visualizer">📊</button>
-                <button id="lyricsBtn" class="control-icon-btn" title="Lyrics" aria-label="Toggle lyrics display">🎤</button>
-                <button id="castBtn" class="control-icon-btn" title="Cast to device" aria-label="Cast to Chromecast" style="display: none;">📡</button>
-                <button id="exportBtn" class="control-icon-btn" title="Export playlist" aria-label="Export playlist to JSON">💾</button>
-                <button id="importBtn" class="control-icon-btn" title="Import playlist" aria-label="Import playlist from JSON">📥</button>
+            <div class="search-input-wrap">
+                <svg class="icon search-icon" aria-hidden="true"><use href="#icon-search"/></svg>
+                <input type="search" id="searchInput" class="search-input" placeholder="Поиск треков..." aria-label="Search tracks">
             </div>
         </div>
 
@@ -81,8 +123,17 @@
                 <img id="albumArtImg" class="album-art-image" alt="Album art" style="display: none;">
                 <canvas id="visualizerCanvas" class="visualizer-canvas" width="400" height="400" style="display: none;"></canvas>
                 <div class="vinyl-disc" id="vinylDisc">
+                    <div class="vinyl-grooves"></div>
                     <div class="vinyl-center"></div>
                 </div>
+                <svg class="tonearm" id="tonearm" viewBox="0 0 100 100" aria-hidden="true">
+                    <g class="tonearm-group">
+                        <line x1="86" y1="14" x2="50" y2="50" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+                        <circle cx="86" cy="14" r="6" fill="currentColor"/>
+                        <circle cx="86" cy="14" r="3" fill="rgba(255,255,255,0.4)"/>
+                        <rect x="46" y="46" width="8" height="10" rx="2" fill="currentColor"/>
+                    </g>
+                </svg>
             </div>
             <div class="track-info">
                 <h2 id="currentTrackTitle">Трек не играет</h2>
@@ -94,30 +145,52 @@
         <!-- Lyrics Display -->
         <div id="lyricsPanel" class="lyrics-panel" style="display: none;">
             <div class="lyrics-header">
-                <h3>🎤 Lyrics</h3>
-                <button id="closeLyricsBtn" class="close-lyrics-btn" aria-label="Close lyrics">✕</button>
+                <h3>Текст песни</h3>
+                <button id="closeLyricsBtn" class="close-lyrics-btn" aria-label="Close lyrics">
+                    <svg class="icon"><use href="#icon-close"/></svg>
+                </button>
             </div>
             <div id="lyricsContent" class="lyrics-content">
-                <p class="lyrics-empty">No lyrics available</p>
+                <p class="lyrics-empty">Текст недоступен</p>
             </div>
         </div>
 
         <div class="player-controls">
             <div class="progress-container">
                 <span id="currentTime" aria-label="Current time">0:00</span>
-                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" aria-label="Seek progress bar" role="slider">
+                <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0" aria-label="Seek progress bar">
                 <span id="duration" aria-label="Duration">0:00</span>
             </div>
 
             <div class="controls">
-                <button id="prevBtn" class="control-btn" aria-label="Previous track (Left arrow)" title="Previous (←)">⏮️</button>
-                <button id="playPauseBtn" class="control-btn play-btn" aria-label="Play or Pause (Spacebar)" title="Play/Pause (Space)">▶️</button>
-                <button id="nextBtn" class="control-btn" aria-label="Next track (Right arrow)" title="Next (→)">⏭️</button>
+                <button id="shuffleBtn" class="control-btn control-btn-sm" title="Перемешать (S)" aria-label="Toggle shuffle mode">
+                    <svg class="icon"><use href="#icon-shuffle"/></svg>
+                </button>
+                <button id="prevBtn" class="control-btn" aria-label="Previous track (Left arrow)" title="Предыдущий (←)">
+                    <svg class="icon"><use href="#icon-prev"/></svg>
+                </button>
+                <button id="playPauseBtn" class="control-btn play-btn" aria-label="Play or Pause (Spacebar)" title="Играть/Пауза (Space)">
+                    <svg class="icon"><use href="#icon-play"/></svg>
+                </button>
+                <button id="nextBtn" class="control-btn" aria-label="Next track (Right arrow)" title="Следующий (→)">
+                    <svg class="icon"><use href="#icon-next"/></svg>
+                </button>
+                <button id="repeatBtn" class="control-btn control-btn-sm" title="Повтор (R)" aria-label="Cycle repeat mode">
+                    <svg class="icon"><use href="#icon-repeat"/></svg>
+                </button>
             </div>
 
-            <div class="volume-control">
-                <span aria-hidden="true">🔊</span>
-                <input type="range" id="volumeBar" class="volume-bar" min="0" max="100" value="70" aria-label="Volume control" role="slider">
+            <div class="bottom-row">
+                <div class="volume-control">
+                    <svg class="icon" aria-hidden="true"><use href="#icon-volume"/></svg>
+                    <input type="range" id="volumeBar" class="volume-bar" min="0" max="100" value="70" aria-label="Volume control">
+                </div>
+
+                <div class="speed-control">
+                    <span class="speed-label">Скорость</span>
+                    <input type="range" id="speedSlider" class="speed-slider" min="50" max="200" value="100" step="25" aria-label="Playback speed">
+                    <span class="speed-value" id="speedValue">1.00x</span>
+                </div>
             </div>
         </div>
 
@@ -135,145 +208,134 @@
     <!-- Audio element for playback (supports MP4 audio, MP3, etc.) -->
     <audio id="audioPlayer" preload="auto" playsinline></audio>
 
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Настройки</h2>
+                <button class="modal-close" data-modal="settingsModal" aria-label="Close">
+                    <svg class="icon"><use href="#icon-close"/></svg>
+                </button>
+            </div>
+
+            <div class="settings-section">
+                <h3>Цветовая тема</h3>
+                <div class="accent-grid" id="accentGrid">
+                    <button class="accent-swatch" data-accent="indigo" style="--swatch:#667eea" title="Индиго" aria-label="Indigo accent"></button>
+                    <button class="accent-swatch" data-accent="emerald" style="--swatch:#10b981" title="Изумруд" aria-label="Emerald accent"></button>
+                    <button class="accent-swatch" data-accent="rose" style="--swatch:#ec4899" title="Роза" aria-label="Rose accent"></button>
+                    <button class="accent-swatch" data-accent="amber" style="--swatch:#f59e0b" title="Янтарь" aria-label="Amber accent"></button>
+                    <button class="accent-swatch" data-accent="cyan" style="--swatch:#06b6d4" title="Циан" aria-label="Cyan accent"></button>
+                    <button class="accent-swatch" data-accent="violet" style="--swatch:#8b5cf6" title="Фиолетовый" aria-label="Violet accent"></button>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3>Дополнительно</h3>
+                <div class="settings-actions">
+                    <button id="sleepTimerBtn" class="settings-btn" aria-label="Set sleep timer">
+                        <svg class="icon"><use href="#icon-timer"/></svg>
+                        <span>Таймер сна</span>
+                        <span class="settings-status" id="sleepTimerStatus"></span>
+                    </button>
+                    <button id="visualizerBtn" class="settings-btn" aria-label="Toggle audio visualizer">
+                        <svg class="icon"><use href="#icon-visualizer"/></svg>
+                        <span>Визуализатор</span>
+                    </button>
+                    <button id="lyricsBtn" class="settings-btn" aria-label="Toggle lyrics display">
+                        <svg class="icon"><use href="#icon-mic"/></svg>
+                        <span>Текст песни</span>
+                    </button>
+                    <button id="castBtn" class="settings-btn" aria-label="Cast to Chromecast" style="display: none;">
+                        <svg class="icon"><use href="#icon-cast"/></svg>
+                        <span>Chromecast</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Help Modal -->
     <div id="helpModal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>📖 Инструкция / User Guide</h2>
-
-            <div class="help-section">
-                <h3>🎵 Как добавить музыку / How to Add Music</h3>
-                <p><strong>Способ 1:</strong> Нажмите "📁 Добавить треки" → Выберите файлы</p>
-                <p><strong>Method 1:</strong> Click "📁 Add Tracks" → Select files</p>
-                <p><strong>Способ 2:</strong> Перетащите MP3/MP4 файлы в окно</p>
-                <p><strong>Method 2:</strong> Drag & drop MP3/MP4 files into window</p>
+            <div class="modal-header">
+                <h2>Инструкция</h2>
+                <button class="modal-close" data-modal="helpModal" aria-label="Close">
+                    <svg class="icon"><use href="#icon-close"/></svg>
+                </button>
             </div>
 
             <div class="help-section">
-                <h3>▶️ Управление / Controls</h3>
-                <p>⏮️ Предыдущая / Previous | ▶️ Играть / Play | ⏸️ Пауза / Pause | ⏭️ Следующая / Next</p>
-                <p>🔊 Громкость / Volume | Прогресс бар / Progress bar для перемотки / for seeking</p>
+                <h3>Как добавить музыку</h3>
+                <p><strong>Способ 1:</strong> Нажмите «Добавить треки» → выберите файлы.</p>
+                <p><strong>Способ 2:</strong> Перетащите MP3/MP4 файлы в окно.</p>
             </div>
 
             <div class="help-section">
-                <h3>💾 Хранилище / Storage</h3>
-                <p>📱 <strong>Телефон / Phone:</strong> до / up to 10 GB</p>
-                <p>💻 <strong>Компьютер / Desktop:</strong> до / up to 500 GB!</p>
-                <p>✅ Музыка хранится <strong>локально</strong> / Music stored <strong>locally</strong></p>
-                <p>✅ Работает <strong>офлайн</strong> / Works <strong>offline</strong></p>
+                <h3>Управление</h3>
+                <p>В строке плеера: ⏮ предыдущий · ▶ играть/пауза · ⏭ следующий · 🔀 перемешать · 🔁 повтор.</p>
+                <p>Слайдеры громкости и скорости — под кнопками плеера.</p>
             </div>
 
             <div class="help-section">
-                <h3>📶 Офлайн режим / Offline Mode</h3>
-                <p>1. Добавьте треки <strong>с интернетом</strong> (один раз)</p>
-                <p>1. Add tracks <strong>with internet</strong> (once)</p>
-                <p>2. Слушайте <strong>без интернета</strong> когда угодно!</p>
-                <p>2. Listen <strong>without internet</strong> anytime!</p>
+                <h3>Плейлисты</h3>
+                <p><strong>Создать:</strong> кнопка «+» в строке плейлистов.</p>
+                <p><strong>Переименовать:</strong> кнопка с карандашом (нельзя для Default).</p>
+                <p><strong>Удалить:</strong> кнопка с корзиной — удаляет плейлист и все его треки (нельзя для Default).</p>
+                <p><strong>Переключиться:</strong> выпадающий список слева.</p>
+                <p><strong>Экспорт/импорт:</strong> кнопки со стрелками рядом — сохраняют список метаданных текущего плейлиста в JSON.</p>
+                <p><strong>Очистка:</strong> «Очистить плейлист» удаляет треки только из выбранного плейлиста. Другие плейлисты не трогаются.</p>
+                <p><strong>Добавление:</strong> новые треки попадают в текущий выбранный плейлист.</p>
             </div>
 
             <div class="help-section">
-                <h3>🎼 Форматы / Formats</h3>
-                <p>✅ MP3, WAV, OGG, FLAC, M4A, AAC</p>
-                <p>✅ MP4, M4V (видео - только звук / video - audio only)</p>
+                <h3>Хранилище</h3>
+                <p>Телефон: до 10 ГБ. Компьютер: до 500 ГБ.</p>
+                <p>Музыка хранится локально в IndexedDB — данные на сервер не уходят.</p>
             </div>
 
             <div class="help-section">
-                <h3>⌨️ Горячие клавиши / Keyboard Shortcuts</h3>
-                <p><strong>Пробел / Space</strong> - Играть/Пауза / Play/Pause</p>
-                <p><strong>→ Стрелка вправо / Right Arrow</strong> - След. трек / Next track</p>
-                <p><strong>← Стрелка влево / Left Arrow</strong> - Пред. трек / Previous track</p>
-                <p><strong>Shift + →</strong> - Вперёд 10с / Skip forward 10s</p>
-                <p><strong>Shift + ←</strong> - Назад 10с / Skip backward 10s</p>
-                <p><strong>↑ / ↓</strong> - Громкость / Volume up/down</p>
-                <p><strong>M</strong> - Выкл. звук / Mute</p>
-                <p><strong>S</strong> - Перемешивание / Shuffle</p>
-                <p><strong>R</strong> - Повтор / Repeat</p>
+                <h3>Офлайн режим</h3>
+                <p>1. Один раз откройте приложение онлайн (для регистрации Service Worker).</p>
+                <p>2. Дальше слушайте без интернета.</p>
             </div>
 
             <div class="help-section">
-                <h3>✨ Функции v2.0 / v2.0 Features</h3>
-                <p>🔀 <strong>Перемешивание</strong> - Случайный порядок / Random playback</p>
-                <p>🔁 <strong>Повтор</strong> - Одного трека или всех / Repeat one or all</p>
-                <p>🔍 <strong>Поиск</strong> - Быстрый поиск по названию / Quick search</p>
-                <p>💾 <strong>Экспорт/Импорт</strong> - Сохранить плейлист / Save playlist</p>
-                <p>⏰ <strong>Таймер сна</strong> - Автостоп / Auto stop</p>
-                <p>⚡ <strong>Скорость</strong> - 0.5x до 2x / 0.5x to 2x speed</p>
+                <h3>Форматы</h3>
+                <p>MP3, WAV, OGG, FLAC, M4A, AAC. MP4/M4V — только звук.</p>
             </div>
 
             <div class="help-section">
-                <h3>🎨 Функции v3.0 / v3.0 Features</h3>
-                <p>📂 <strong>Плейлисты</strong> - Создавайте несколько плейлистов / Create multiple playlists</p>
-                <p>🎤 <strong>Тексты песен</strong> - Просмотр текстов с синхронизацией / View lyrics with sync</p>
-                <p>📊 <strong>Визуализатор</strong> - Красивая визуализация звука / Beautiful audio visualization</p>
-                <p>🖼️ <strong>Обложки альбомов</strong> - Автоматическое извлечение / Auto album art extraction</p>
-                <p>🌓 <strong>Темы</strong> - Темная и светлая тема / Dark and light theme</p>
-                <p>📡 <strong>Chromecast</strong> - Трансляция на устройства / Cast to devices</p>
-                <p>🏷️ <strong>ID3 теги</strong> - Метаданные треков / Track metadata</p>
+                <h3>Горячие клавиши</h3>
+                <p><strong>Пробел</strong> — Играть/Пауза</p>
+                <p><strong>← / →</strong> — Предыдущий / следующий трек</p>
+                <p><strong>Shift + ← / →</strong> — Перемотка ±10 сек</p>
+                <p><strong>↑ / ↓</strong> — Громкость</p>
+                <p><strong>M</strong> — Без звука</p>
+                <p><strong>S</strong> — Перемешать</p>
+                <p><strong>R</strong> — Повтор</p>
             </div>
 
             <div class="help-section">
-                <h3>📂 Управление плейлистами / Playlist Management</h3>
-                <p>➕ <strong>Создать</strong> - Нажмите ➕ для нового плейлиста</p>
-                <p>➕ <strong>Create</strong> - Click ➕ for new playlist</p>
-                <p>✏️ <strong>Переименовать</strong> - Нажмите ✏️ для переименования</p>
-                <p>✏️ <strong>Rename</strong> - Click ✏️ to rename</p>
-                <p>🗑️ <strong>Удалить</strong> - Нажмите 🗑️ для удаления</p>
-                <p>🗑️ <strong>Delete</strong> - Click 🗑️ to delete</p>
-                <p>📑 <strong>Переключение</strong> - Используйте выпадающий список</p>
-                <p>📑 <strong>Switch</strong> - Use dropdown selector</p>
+                <h3>Настройки приложения</h3>
+                <p>Откройте шестерёнку в шапке: цветовые акценты, таймер сна, визуализатор, текст песни, Chromecast.</p>
             </div>
 
             <div class="help-section">
-                <h3>🎤 Тексты песен / Lyrics</h3>
-                <p><strong>Открыть:</strong> Нажмите 🎤 в панели управления</p>
-                <p><strong>Open:</strong> Click 🎤 in control panel</p>
-                <p><strong>Синхронизация:</strong> Поддержка формата .LRC с таймкодами</p>
-                <p><strong>Sync:</strong> Supports .LRC format with timestamps</p>
-                <p><strong>Прокрутка:</strong> Автопрокрутка к текущей строке</p>
-                <p><strong>Scrolling:</strong> Auto-scroll to current line</p>
+                <h3>Установить как приложение</h3>
+                <p><strong>iPhone:</strong> Safari → Поделиться → На экран «Домой».</p>
+                <p><strong>Android:</strong> Chrome → Меню → Установить приложение.</p>
+                <p><strong>Desktop:</strong> Chrome/Edge → значок установки в адресной строке.</p>
             </div>
 
             <div class="help-section">
-                <h3>📊 Визуализатор / Visualizer</h3>
-                <p><strong>Включить:</strong> Нажмите 📊 в панели управления</p>
-                <p><strong>Enable:</strong> Click 📊 in control panel</p>
-                <p><strong>Дизайн:</strong> Круговая визуализация частот</p>
-                <p><strong>Design:</strong> Circular frequency visualization</p>
-                <p><strong>Обложка:</strong> Визуализатор заменяет обложку альбома</p>
-                <p><strong>Art:</strong> Visualizer replaces album art</p>
+                <h3>Полная инструкция</h3>
+                <p><a href="https://github.com/RAZEX0LOL/music-player-pwa/blob/master/INSTRUKCIYA.md" target="_blank">Русская инструкция (GitHub)</a></p>
+                <p><a href="https://github.com/RAZEX0LOL/music-player-pwa/blob/master/USER-GUIDE.md" target="_blank">English User Guide (GitHub)</a></p>
             </div>
 
-            <div class="help-section">
-                <h3>📡 Chromecast</h3>
-                <p><strong>Подключение:</strong> Нажмите 📡 для выбора устройства</p>
-                <p><strong>Connect:</strong> Click 📡 to select device</p>
-                <p><strong>Метаданные:</strong> Отправляет название, исполнителя, обложку</p>
-                <p><strong>Metadata:</strong> Sends title, artist, album art</p>
-                <p><strong>Отключение:</strong> Нажмите снова для остановки трансляции</p>
-                <p><strong>Disconnect:</strong> Click again to stop casting</p>
-            </div>
-
-            <div class="help-section">
-                <h3>📱 Установить как приложение / Install as App</h3>
-                <p><strong>iPhone:</strong> Safari → Поделиться → На экран "Домой"</p>
-                <p><strong>iPhone:</strong> Safari → Share → Add to Home Screen</p>
-                <p><strong>Android:</strong> Chrome → Меню (⋮) → Установить приложение</p>
-                <p><strong>Android:</strong> Chrome → Menu (⋮) → Install app</p>
-                <p><strong>Desktop:</strong> Chrome/Edge → Значок установки (⊕)</p>
-                <p><strong>Desktop:</strong> Chrome/Edge → Install icon (⊕)</p>
-            </div>
-
-            <div class="help-section">
-                <h3>📚 Полная инструкция / Full Guide</h3>
-                <p>🇷🇺 <a href="https://github.com/RAZEX0LOL/music-player-pwa/blob/master/INSTRUKCIYA.md" target="_blank">Русская инструкция</a></p>
-                <p>🇬🇧 <a href="https://github.com/RAZEX0LOL/music-player-pwa/blob/master/USER-GUIDE.md" target="_blank">English User Guide</a></p>
-            </div>
-
-            <div class="help-section" style="text-align: center; padding-top: 10px;">
-                <p style="color: rgba(255,255,255,0.6); font-size: 0.9em;">
-                    🔒 100% приватно / 100% private<br>
-                    Нет слежки / No tracking | Нет рекламы / No ads
-                </p>
+            <div class="help-section help-section--center">
+                <p>100% приватно · без слежки · без рекламы.</p>
             </div>
         </div>
     </div>

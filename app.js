@@ -1,3 +1,8 @@
+// Helper: build an inline SVG that references a sprite symbol via <use>
+function svgIcon(name) {
+    return `<svg class="icon" aria-hidden="true"><use href="#icon-${name}"/></svg>`;
+}
+
 // Internationalization
 const I18N = {
     ru: {
@@ -7,7 +12,7 @@ const I18N = {
         tracksAdded: 'Добавлено треков',
         trackDeleted: 'Трек удалён',
         allTracksDeleted: 'Все треки удалены',
-        confirmClearAll: 'Вы уверены, что хотите удалить все треки?',
+        confirmClearAll: 'Удалить все треки из этого плейлиста?',
         noTrackPlaying: 'Трек не играет',
         selectTrack: 'Выберите трек для начала',
         nowPlaying: 'Сейчас играет',
@@ -16,7 +21,9 @@ const I18N = {
         errorPlayback: 'Ошибка воспроизведения',
         errorInit: 'Ошибка инициализации',
         online: 'Онлайн',
-        offline: 'Офлайн - Работает без интернета!',
+        offline: 'Офлайн',
+        offlineHint: 'Работает без интернета',
+        onlineHint: 'Подключение к сети активно',
         ready: 'Готов',
         fileTooLarge: 'Файл слишком большой',
         unsupportedFormat: 'Неподдерживаемый формат',
@@ -60,7 +67,7 @@ const I18N = {
         tracksAdded: 'Tracks added',
         trackDeleted: 'Track deleted',
         allTracksDeleted: 'All tracks deleted',
-        confirmClearAll: 'Are you sure you want to delete all tracks?',
+        confirmClearAll: 'Delete all tracks from this playlist?',
         noTrackPlaying: 'No track playing',
         selectTrack: 'Select a track to start',
         nowPlaying: 'Now playing',
@@ -69,7 +76,9 @@ const I18N = {
         errorPlayback: 'Playback error',
         errorInit: 'Initialization error',
         online: 'Online',
-        offline: 'Offline - Works without internet!',
+        offline: 'Offline',
+        offlineHint: 'Works without internet',
+        onlineHint: 'Network connection active',
         ready: 'Ready',
         fileTooLarge: 'File too large',
         unsupportedFormat: 'Unsupported format',
@@ -407,6 +416,26 @@ class MusicDB {
         });
     }
 
+    async clearTracksByPlaylist(playlistId) {
+        const transaction = this.db.transaction(['tracks'], 'readwrite');
+        const store = transaction.objectStore('tracks');
+        const index = store.index('playlistId');
+
+        return new Promise((resolve, reject) => {
+            const request = index.openCursor(IDBKeyRange.only(playlistId));
+            request.onsuccess = (event) => {
+                const cursor = event.target.result;
+                if (cursor) {
+                    cursor.delete();
+                    cursor.continue();
+                } else {
+                    resolve();
+                }
+            };
+            request.onerror = () => reject(request.error);
+        });
+    }
+
     // Playlist methods
     async getAllPlaylists() {
         const transaction = this.db.transaction(['playlists'], 'readonly');
@@ -519,7 +548,8 @@ class MusicPlayer {
         this.audio.loop = false; // Explicitly disable looping - handled manually via repeatMode
         this.playlist = [];
         this.filteredPlaylist = [];
-        this.currentIndex = 0;
+        this.currentIndex = -1;
+        this.currentTrackId = null; // Survives playlist switches for correct highlighting
         this.isPlaying = false;
         this.currentBlobUrl = null; // Fix memory leak
         this.shuffleMode = false;
@@ -579,24 +609,33 @@ class MusicPlayer {
         this.statusIndicator = document.getElementById('statusIndicator');
         this.statusText = document.getElementById('statusText');
 
-        // New elements (v2.0)
+        // Status badge wrapper (for tooltip update)
+        this.statusBadge = document.getElementById('statusBadge');
+
+        // Player controls
         this.shuffleBtn = document.getElementById('shuffleBtn');
         this.repeatBtn = document.getElementById('repeatBtn');
+        this.speedSlider = document.getElementById('speedSlider');
+        this.speedValue = document.getElementById('speedValue');
         this.searchInput = document.getElementById('searchInput');
+
+        // Playlist bar
         this.exportBtn = document.getElementById('exportBtn');
         this.importBtn = document.getElementById('importBtn');
         this.importFileInput = document.getElementById('importFileInput');
-        this.sleepTimerBtn = document.getElementById('sleepTimerBtn');
-        this.speedBtn = document.getElementById('speedBtn');
-
-        // New elements (v3.0)
         this.playlistSelector = document.getElementById('playlistSelector');
         this.newPlaylistBtn = document.getElementById('newPlaylistBtn');
         this.renamePlaylistBtn = document.getElementById('renamePlaylistBtn');
         this.deletePlaylistBtn = document.getElementById('deletePlaylistBtn');
+
+        // Settings modal items
+        this.sleepTimerBtn = document.getElementById('sleepTimerBtn');
+        this.sleepTimerStatus = document.getElementById('sleepTimerStatus');
         this.themeToggle = document.getElementById('themeToggle');
         this.visualizerBtn = document.getElementById('visualizerBtn');
         this.lyricsBtn = document.getElementById('lyricsBtn');
+        this.settingsBtn = document.getElementById('settingsBtn');
+        this.accentGrid = document.getElementById('accentGrid');
         this.visualizerCanvas = document.getElementById('visualizerCanvas');
         this.albumArtImg = document.getElementById('albumArtImg');
         this.currentTrackAlbum = document.getElementById('currentTrackAlbum');
@@ -604,6 +643,7 @@ class MusicPlayer {
         this.lyricsContent = document.getElementById('lyricsContent');
         this.closeLyricsBtn = document.getElementById('closeLyricsBtn');
         this.castBtn = document.getElementById('castBtn');
+        this.tonearm = document.getElementById('tonearm');
     }
 
     initEventListeners() {
@@ -696,8 +736,8 @@ class MusicPlayer {
         if (this.sleepTimerBtn) {
             this.sleepTimerBtn.addEventListener('click', () => this.showSleepTimerDialog());
         }
-        if (this.speedBtn) {
-            this.speedBtn.addEventListener('click', () => this.cyclePlaybackSpeed());
+        if (this.speedSlider) {
+            this.speedSlider.addEventListener('input', (e) => this.setPlaybackSpeed(parseInt(e.target.value, 10) / 100));
         }
 
         // Keyboard shortcuts
@@ -737,6 +777,15 @@ class MusicPlayer {
         dropZone.addEventListener('dragover', (e) => this.handleDragOver(e));
         dropZone.addEventListener('dragleave', (e) => this.handleDragLeave(e));
         dropZone.addEventListener('drop', (e) => this.handleDrop(e));
+
+        // Accent color swatches
+        if (this.accentGrid) {
+            this.accentGrid.addEventListener('click', (e) => {
+                const swatch = e.target.closest('.accent-swatch');
+                if (!swatch) return;
+                this.setAccent(swatch.dataset.accent);
+            });
+        }
     }
 
     async init() {
@@ -745,9 +794,11 @@ class MusicPlayer {
             await this.loadPlaylists();
             await this.loadPlaylist();
             this.setVolume(70);
+            this.setPlaybackSpeed(1.0);
             this.updateOnlineStatus(navigator.onLine);
             this.registerServiceWorker();
             this.initTheme();
+            this.updatePlayButton();
             // Don't setup visualizer until needed - prevents AudioContext suspension on lock screen
             this.initCast();
         } catch (error) {
@@ -787,8 +838,12 @@ class MusicPlayer {
     }
 
     updateOnlineStatus(isOnline) {
+        const i18n = I18N[this.lang];
         this.statusIndicator.className = isOnline ? 'online' : 'offline';
-        this.statusText.textContent = isOnline ? 'Онлайн' : 'Офлайн - Работает без интернета!';
+        this.statusText.textContent = isOnline ? i18n.online : i18n.offline;
+        if (this.statusBadge) {
+            this.statusBadge.title = isOnline ? i18n.onlineHint : i18n.offlineHint;
+        }
     }
 
     handleAddTracksClick() {
@@ -876,6 +931,11 @@ class MusicPlayer {
     async loadPlaylist() {
         try {
             this.playlist = await this.db.getTracksByPlaylist(this.currentPlaylist);
+            // Re-sync currentIndex with the playing track (by id) so highlighting stays correct
+            if (this.currentTrackId != null) {
+                const idx = this.playlist.findIndex(t => t.id === this.currentTrackId);
+                this.currentIndex = idx;
+            }
             this.renderPlaylist();
             this.updateTrackCount();
         } catch (error) {
@@ -909,13 +969,14 @@ class MusicPlayer {
 
         this.trackList.innerHTML = filteredPlaylist.map((track) => {
             const actualIndex = this.playlist.findIndex(t => t.id === track.id);
+            const isActive = this.currentTrackId === track.id;
             return `
-                <div class="track-item ${actualIndex === this.currentIndex ? 'active' : ''}" data-index="${actualIndex}">
+                <div class="track-item ${isActive ? 'active' : ''}" data-index="${actualIndex}">
                     <div class="track-item-info">
                         <div class="track-item-title">${this.escapeHtml(track.name)}</div>
                         <div class="track-item-duration">${this.formatFileSize(track.size)}</div>
                     </div>
-                    <button class="delete-btn" data-id="${track.id}" onclick="event.stopPropagation()" aria-label="Delete track">🗑️</button>
+                    <button class="delete-btn" data-id="${track.id}" onclick="event.stopPropagation()" aria-label="Delete track">${svgIcon('trash')}</button>
                 </div>
             `;
         }).join('');
@@ -945,25 +1006,23 @@ class MusicPlayer {
     async deleteTrack(id) {
         const i18n = I18N[this.lang];
         try {
-            await this.db.deleteTrack(id);
-
+            const wasCurrent = this.currentTrackId === id;
             const wasPlaying = this.isPlaying;
             const deletedIndex = this.playlist.findIndex(s => s.id === id);
 
-            if (deletedIndex === this.currentIndex) {
-                this.audio.pause();
-                // Note: isPlaying and updatePlayButton() handled by pause event listener
+            if (wasCurrent) {
+                // Clean up audio source so togglePlay won't resume a deleted blob.
+                this.resetPlaybackState();
             }
 
+            await this.db.deleteTrack(id);
             await this.loadPlaylist();
 
-            if (this.playlist.length > 0 && deletedIndex === this.currentIndex) {
-                this.currentIndex = Math.min(this.currentIndex, this.playlist.length - 1);
+            if (wasCurrent && this.playlist.length > 0) {
+                const nextIndex = Math.min(deletedIndex, this.playlist.length - 1);
                 if (wasPlaying) {
-                    await this.playTrackAtIndex(this.currentIndex);
+                    await this.playTrackAtIndex(nextIndex);
                 }
-            } else if (deletedIndex < this.currentIndex) {
-                this.currentIndex--;
             }
 
             this.statusText.textContent = i18n.trackDeleted;
@@ -982,16 +1041,15 @@ class MusicPlayer {
         if (!confirm(i18n.confirmClearAll)) return;
 
         try {
-            this.audio.pause();
-            // Note: isPlaying and updatePlayButton() handled by pause event listener
+            // If the playing track lives in this playlist, stop it cleanly.
+            const playingHere = this.currentTrackId != null &&
+                this.playlist.some(t => t.id === this.currentTrackId);
+            if (playingHere) {
+                this.resetPlaybackState();
+            }
 
-            await this.db.clearAll();
+            await this.db.clearTracksByPlaylist(this.currentPlaylist);
             await this.loadPlaylist();
-
-            this.currentIndex = 0;
-            this.currentTrackTitle.textContent = i18n.noTrackPlaying;
-            this.currentTrackArtist.textContent = i18n.selectTrack;
-            this.vinylDisc.classList.remove('spinning');
 
             this.statusText.textContent = i18n.allTracksDeleted;
             ErrorHandler.notify(i18n.allTracksDeleted, null, 'success');
@@ -1004,11 +1062,45 @@ class MusicPlayer {
         }
     }
 
+    // Fully stop playback and reset "now playing" UI / audio source.
+    resetPlaybackState() {
+        const i18n = I18N[this.lang];
+        try { this.audio.pause(); } catch (_) {}
+        if (this.currentBlobUrl) {
+            URL.revokeObjectURL(this.currentBlobUrl);
+            this.currentBlobUrl = null;
+        }
+        this.audio.removeAttribute('src');
+        this.audio.load();
+        this.currentTrackId = null;
+        this.currentIndex = -1;
+        this.currentTrackTitle.textContent = i18n.noTrackPlaying;
+        this.currentTrackArtist.textContent = i18n.selectTrack;
+        if (this.currentTrackAlbum) {
+            this.currentTrackAlbum.textContent = '';
+            this.currentTrackAlbum.style.display = 'none';
+        }
+        if (this.albumArtImg) {
+            this.albumArtImg.style.display = 'none';
+            this.albumArtImg.removeAttribute('src');
+        }
+        this.vinylDisc.style.display = 'block';
+        this.vinylDisc.classList.remove('spinning');
+        this.progressBar.value = 0;
+        this.currentTimeEl.textContent = '0:00';
+        this.durationEl.textContent = '0:00';
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = null;
+            navigator.mediaSession.playbackState = 'none';
+        }
+    }
+
     async playTrackAtIndex(index) {
         if (index < 0 || index >= this.playlist.length) return;
 
         this.currentIndex = index;
         const track = this.playlist[index];
+        this.currentTrackId = track.id;
 
         try {
             const trackData = await this.db.getTrack(track.id);
@@ -1066,7 +1158,13 @@ class MusicPlayer {
             return;
         }
 
-        if (this.audio.src === '') {
+        // If nothing valid is loaded (no src, or track gone after delete/clear),
+        // start the current playlist from the first track.
+        const stillValid = this.currentTrackId != null &&
+            this.playlist.some(t => t.id === this.currentTrackId) &&
+            this.audio.src && this.audio.src !== '';
+
+        if (!stillValid) {
             await this.playTrackAtIndex(0);
             return;
         }
@@ -1088,6 +1186,12 @@ class MusicPlayer {
 
     async playNext() {
         if (this.playlist.length === 0) return;
+
+        // Nothing currently selected → start from the beginning.
+        if (this.currentIndex < 0) {
+            await this.playTrackAtIndex(0);
+            return;
+        }
 
         // Repeat one track
         if (this.repeatMode === 'one') {
@@ -1122,12 +1226,16 @@ class MusicPlayer {
 
     async playPrevious() {
         if (this.playlist.length === 0) return;
-        this.currentIndex = (this.currentIndex - 1 + this.playlist.length) % this.playlist.length;
-        await this.playTrackAtIndex(this.currentIndex);
+        if (this.currentIndex < 0) {
+            await this.playTrackAtIndex(0);
+            return;
+        }
+        const prev = (this.currentIndex - 1 + this.playlist.length) % this.playlist.length;
+        await this.playTrackAtIndex(prev);
     }
 
     updatePlayButton() {
-        this.playPauseBtn.textContent = this.isPlaying ? '⏸️' : '▶️';
+        this.playPauseBtn.innerHTML = svgIcon(this.isPlaying ? 'pause' : 'play');
     }
 
     updateNowPlaying(trackName) {
@@ -1341,18 +1449,18 @@ class MusicPlayer {
 
         const i18n = I18N[this.lang];
         let message = i18n.repeatOff;
-        let icon = '🔁';
+        let iconName = 'repeat';
 
         if (this.repeatMode === 'all') {
             message = i18n.repeatAll;
-            icon = '🔁';
+            iconName = 'repeat';
         } else if (this.repeatMode === 'one') {
             message = i18n.repeatOne;
-            icon = '🔂';
+            iconName = 'repeat-one';
         }
 
         if (this.repeatBtn) {
-            this.repeatBtn.textContent = icon;
+            this.repeatBtn.innerHTML = svgIcon(iconName);
             this.repeatBtn.classList.toggle('active', this.repeatMode !== 'none');
         }
 
@@ -1424,11 +1532,16 @@ class MusicPlayer {
         event.target.value = '';
     }
 
-    // Sleep timer functionality
+    // Sleep timer functionality (toggle: opens dialog, or cancels if already armed)
     showSleepTimerDialog() {
         const i18n = I18N[this.lang];
-        const minutes = prompt(`${i18n.sleepTimerSet}?\n\n${i18n.minutes}:`, '30');
 
+        if (this.sleepTimer) {
+            this.cancelSleepTimer();
+            return;
+        }
+
+        const minutes = prompt(`${i18n.sleepTimerSet}?\n\n${i18n.minutes}:`, '30');
         if (minutes === null) return;
 
         const min = parseInt(minutes);
@@ -1437,19 +1550,15 @@ class MusicPlayer {
             return;
         }
 
-        // Cancel existing timer
-        if (this.sleepTimer) {
-            clearTimeout(this.sleepTimer);
-        }
-
-        // Set new timer
         this.sleepTimer = setTimeout(() => {
             this.audio.pause();
-            // Note: isPlaying and updatePlayButton() handled by pause event listener
             this.vinylDisc.classList.remove('spinning');
+            this.sleepTimer = null;
+            this.updateSleepTimerUI();
             ErrorHandler.notify('Sleep timer ended', null, 'info');
         }, min * 60 * 1000);
 
+        this.updateSleepTimerUI(min);
         ErrorHandler.notify(`${i18n.sleepTimerSet} ${min} ${i18n.minutes}`, null, 'success');
     }
 
@@ -1457,23 +1566,29 @@ class MusicPlayer {
         if (this.sleepTimer) {
             clearTimeout(this.sleepTimer);
             this.sleepTimer = null;
+            this.updateSleepTimerUI();
             const i18n = I18N[this.lang];
             ErrorHandler.notify(i18n.sleepTimerCancelled, null, 'info');
         }
     }
 
-    // Playback speed control
-    cyclePlaybackSpeed() {
-        const speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
-        const currentIndex = speeds.indexOf(this.audio.playbackRate);
-        const nextIndex = (currentIndex + 1) % speeds.length;
-        this.audio.playbackRate = speeds[nextIndex];
-
-        if (this.speedBtn) {
-            this.speedBtn.textContent = `${speeds[nextIndex]}x`;
+    updateSleepTimerUI(min = null) {
+        if (this.sleepTimerBtn) {
+            this.sleepTimerBtn.classList.toggle('active', this.sleepTimer != null);
         }
+        if (this.sleepTimerStatus) {
+            this.sleepTimerStatus.textContent = min ? `${min} мин` : '';
+        }
+    }
 
-        ErrorHandler.notify(`Speed: ${speeds[nextIndex]}x`, null, 'info');
+    // Playback speed control (driven by slider; 0.5..2.0 in 0.25 steps)
+    setPlaybackSpeed(rate) {
+        const clamped = Math.max(0.5, Math.min(2.0, rate));
+        this.audio.playbackRate = clamped;
+        if (this.speedValue) {
+            this.speedValue.textContent = `${clamped.toFixed(2)}x`;
+        }
+        this.updateMediaSessionPositionState();
     }
 
     // Drag and drop handlers for offline file uploads
@@ -1951,9 +2066,17 @@ class MusicPlayer {
     // Theme System
     initTheme() {
         document.body.setAttribute('data-theme', this.currentTheme);
-        if (this.themeToggle) {
-            this.themeToggle.textContent = this.currentTheme === 'dark' ? '☀️' : '🌙';
-        }
+        this.updateThemeToggleIcon();
+
+        // Restore accent
+        const savedAccent = localStorage.getItem('accent') || 'indigo';
+        this.setAccent(savedAccent, /*silent*/ true);
+    }
+
+    updateThemeToggleIcon() {
+        if (!this.themeToggle) return;
+        // In dark theme show "sun" (click → switch to light); vice versa.
+        this.themeToggle.innerHTML = svgIcon(this.currentTheme === 'dark' ? 'sun' : 'moon');
     }
 
     toggleTheme() {
@@ -1961,13 +2084,23 @@ class MusicPlayer {
         this.currentTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
         document.body.setAttribute('data-theme', this.currentTheme);
         localStorage.setItem('theme', this.currentTheme);
-
-        if (this.themeToggle) {
-            this.themeToggle.textContent = this.currentTheme === 'dark' ? '☀️' : '🌙';
-        }
+        this.updateThemeToggleIcon();
 
         const message = this.currentTheme === 'light' ? i18n.themeLight : i18n.themeDark;
         ErrorHandler.notify(message, null, 'info');
+    }
+
+    setAccent(name, silent = false) {
+        document.body.setAttribute('data-accent', name);
+        localStorage.setItem('accent', name);
+        if (this.accentGrid) {
+            this.accentGrid.querySelectorAll('.accent-swatch').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.accent === name);
+            });
+        }
+        if (!silent) {
+            ErrorHandler.notify(`Акцент: ${name}`, null, 'info');
+        }
     }
 
     // Chromecast / Google Cast Support
@@ -2111,39 +2244,45 @@ class MusicPlayer {
     }
 }
 
-// Help Modal functionality
-function initHelpModal() {
-    const modal = document.getElementById('helpModal');
-    const helpBtn = document.getElementById('helpBtn');
-    const closeBtn = document.querySelector('.close');
+// Modal functionality (help + settings)
+function initModals() {
+    const openMap = {
+        helpBtn: 'helpModal',
+        settingsBtn: 'settingsModal'
+    };
 
-    // Open modal when help button is clicked
-    helpBtn.addEventListener('click', () => {
-        modal.classList.add('show');
-    });
-
-    // Close modal when X button is clicked
-    closeBtn.addEventListener('click', () => {
-        modal.classList.remove('show');
-    });
-
-    // Close modal when clicking outside of modal content
-    window.addEventListener('click', (event) => {
-        if (event.target === modal) {
-            modal.classList.remove('show');
+    Object.entries(openMap).forEach(([btnId, modalId]) => {
+        const btn = document.getElementById(btnId);
+        const modal = document.getElementById(modalId);
+        if (btn && modal) {
+            btn.addEventListener('click', () => modal.classList.add('show'));
         }
     });
 
-    // Close modal when pressing ESC key
+    // Close on X button
+    document.querySelectorAll('.modal-close').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const modal = document.getElementById(btn.dataset.modal);
+            if (modal) modal.classList.remove('show');
+        });
+    });
+
+    // Close on backdrop click
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) modal.classList.remove('show');
+        });
+    });
+
+    // Close on ESC
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && modal.classList.contains('show')) {
-            modal.classList.remove('show');
-        }
+        if (event.key !== 'Escape') return;
+        document.querySelectorAll('.modal.show').forEach(m => m.classList.remove('show'));
     });
 }
 
 // Initialize the player when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     window.player = new MusicPlayer();
-    initHelpModal();
+    initModals();
 });

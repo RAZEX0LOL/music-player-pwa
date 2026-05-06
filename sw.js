@@ -1,4 +1,4 @@
-const CACHE_NAME = 'music-player-v15-critical-fixes';
+const CACHE_NAME = 'music-player-v16-ui-overhaul';
 const urlsToCache = [
     './',
     './index.html',
