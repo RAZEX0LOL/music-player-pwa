@@ -1,74 +1,88 @@
-const CACHE_NAME = 'music-player-v17-responsive-offline-fixes';
-const urlsToCache = [
+const CACHE_NAME = 'music-player-v18-pages-pwa';
+const APP_SHELL = [
     './',
     './index.html',
     './styles.css',
     './app.js',
     './manifest.json',
     './icon.svg',
+    './icons/icon-180.png',
+    './icons/icon-192.png',
+    './icons/icon-512.png',
     './vendor/jsmediatags.min.js'
 ];
 
-// Install service worker and cache assets
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then((cache) => {
-                console.log('Opened cache');
-                return cache.addAll(urlsToCache);
-            })
+            .then((cache) => cache.addAll(APP_SHELL))
             .then(() => self.skipWaiting())
     );
 });
 
-// Activate service worker and clean up old caches
 self.addEventListener('activate', (event) => {
     event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
-                cacheNames.map((cacheName) => {
-                    if (cacheName !== CACHE_NAME) {
-                        console.log('Deleting old cache:', cacheName);
-                        return caches.delete(cacheName);
-                    }
-                })
-            );
-        }).then(() => self.clients.claim())
+        caches.keys()
+            .then((cacheNames) => Promise.all(
+                cacheNames
+                    .filter((cacheName) => cacheName !== CACHE_NAME)
+                    .map((cacheName) => caches.delete(cacheName))
+            ))
+            .then(() => self.clients.claim())
     );
 });
 
-// Fetch strategy: Cache first, fallback to network
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
+});
+
 self.addEventListener('fetch', (event) => {
-    event.respondWith(
-        caches.match(event.request)
-            .then((response) => {
-                // Cache hit - return response
-                if (response) {
-                    return response;
-                }
+    const request = event.request;
 
-                // Clone the request
-                const fetchRequest = event.request.clone();
+    if (request.method !== 'GET') return;
 
-                return fetch(fetchRequest).then((response) => {
-                    // Check if valid response
-                    if (!response || response.status !== 200) {
-                        return response;
-                    }
+    const requestUrl = new URL(request.url);
+    const sameOrigin = requestUrl.origin === self.location.origin;
 
-                    // Clone the response
-                    const responseToCache = response.clone();
+    if (request.mode === 'navigate') {
+        event.respondWith(networkFirstNavigation(request));
+        return;
+    }
 
-                    caches.open(CACHE_NAME)
-                        .then((cache) => {
-                            cache.put(event.request, responseToCache);
-                        });
+    if (!sameOrigin) {
+        event.respondWith(fetch(request));
+        return;
+    }
 
-                    return response;
-                }).catch(() => {
-                    // Return a custom offline page if available
-                    return caches.match('./index.html');
-                });
-            })
-    );
+    event.respondWith(cacheFirstAsset(request));
 });
+
+async function networkFirstNavigation(request) {
+    const cache = await caches.open(CACHE_NAME);
+
+    try {
+        const response = await fetch(request);
+        if (response && response.ok) {
+            cache.put('./index.html', response.clone());
+        }
+        return response;
+    } catch (error) {
+        return caches.match(request) ||
+            caches.match('./index.html') ||
+            caches.match('./');
+    }
+}
+
+async function cacheFirstAsset(request) {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+
+    const response = await fetch(request);
+    if (!response || !response.ok) return response;
+
+    const cache = await caches.open(CACHE_NAME);
+    cache.put(request, response.clone());
+    return response;
+}

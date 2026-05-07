@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Музыка">
-    <link rel="apple-touch-icon" href="./icon.svg">
+    <link rel="apple-touch-icon" href="./icons/icon-180.png">
 
     <title>Офлайн Музыкальный Плеер</title>
     <link rel="manifest" href="./manifest.json">
@@ -205,6 +205,45 @@
     <!-- Audio element for playback (supports MP4 audio, MP3, etc.) -->
     <audio id="audioPlayer" preload="auto" playsinline></audio>
 
+    <!-- Mobile Mini Player -->
+    <div id="miniPlayer" class="mini-player" hidden>
+        <div class="mini-progress" aria-hidden="true">
+            <div id="miniProgressFill" class="mini-progress-fill"></div>
+        </div>
+        <button id="miniPlayPauseBtn" class="mini-control mini-play" aria-label="Play or Pause">
+            <svg class="icon"><use href="#icon-play"/></svg>
+        </button>
+        <button id="miniPlayerInfo" class="mini-info" type="button" aria-label="Show current track">
+            <span id="miniTrackTitle">Трек не играет</span>
+            <span id="miniTrackArtist">Выберите трек</span>
+        </button>
+        <button id="miniPrevBtn" class="mini-control" aria-label="Previous track">
+            <svg class="icon"><use href="#icon-prev"/></svg>
+        </button>
+        <button id="miniNextBtn" class="mini-control" aria-label="Next track">
+            <svg class="icon"><use href="#icon-next"/></svg>
+        </button>
+    </div>
+
+    <!-- App Dialog -->
+    <div id="appDialog" class="modal app-dialog" role="dialog" aria-modal="true" aria-labelledby="appDialogTitle">
+        <div class="modal-content app-dialog-content" tabindex="-1">
+            <div class="modal-header">
+                <h2 id="appDialogTitle">Подтверждение</h2>
+                <button id="appDialogClose" class="modal-close" aria-label="Close">
+                    <svg class="icon"><use href="#icon-close"/></svg>
+                </button>
+            </div>
+            <p id="appDialogMessage" class="app-dialog-message"></p>
+            <label id="appDialogInputLabel" class="app-dialog-input-label" for="appDialogInput" hidden></label>
+            <input id="appDialogInput" class="app-dialog-input" type="text" hidden>
+            <div class="app-dialog-actions">
+                <button id="appDialogCancel" class="settings-btn app-dialog-cancel" type="button">Отмена</button>
+                <button id="appDialogConfirm" class="settings-btn app-dialog-confirm" type="button">ОК</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Settings Modal -->
     <div id="settingsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsModalTitle">
         <div class="modal-content" tabindex="-1">
@@ -249,6 +288,42 @@
                     </button>
                 </div>
             </div>
+
+            <div class="settings-section storage-section">
+                <h3>Хранилище и бэкап</h3>
+                <div class="storage-meter" aria-label="Storage usage">
+                    <div class="storage-meter-fill" id="storageMeterFill"></div>
+                </div>
+                <div class="storage-stats" id="storageStats">
+                    <div>
+                        <span class="storage-label">Использовано</span>
+                        <strong id="storageUsed">—</strong>
+                    </div>
+                    <div>
+                        <span class="storage-label">Доступно</span>
+                        <strong id="storageQuota">—</strong>
+                    </div>
+                    <div>
+                        <span class="storage-label">Защита</span>
+                        <strong id="storagePersisted">—</strong>
+                    </div>
+                </div>
+                <p class="storage-note" id="storageNote">Музыка хранится только в этом браузере. Делайте бэкап перед очисткой данных сайта или сменой устройства.</p>
+                <div class="settings-actions storage-actions">
+                    <button id="refreshStorageBtn" class="settings-btn" aria-label="Refresh storage information">
+                        <svg class="icon"><use href="#icon-repeat"/></svg>
+                        <span>Обновить</span>
+                    </button>
+                    <button id="backupExportBtn" class="settings-btn" aria-label="Export full backup">
+                        <svg class="icon"><use href="#icon-export"/></svg>
+                        <span>Бэкап</span>
+                    </button>
+                    <button id="backupImportBtn" class="settings-btn" aria-label="Import full backup">
+                        <svg class="icon"><use href="#icon-import"/></svg>
+                        <span>Восстановить</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -280,7 +355,7 @@
                 <p><strong>Переименовать:</strong> кнопка с карандашом (нельзя для Default).</p>
                 <p><strong>Удалить:</strong> кнопка с корзиной — удаляет плейлист и все его треки (нельзя для Default).</p>
                 <p><strong>Переключиться:</strong> выпадающий список слева.</p>
-                <p><strong>Экспорт/импорт:</strong> кнопки со стрелками рядом — сохраняют список метаданных текущего плейлиста в JSON.</p>
+                <p><strong>Экспорт/импорт:</strong> кнопки со стрелками рядом — сохраняют и восстанавливают плейлист вместе с аудиоданными.</p>
                 <p><strong>Очистка:</strong> «Очистить плейлист» удаляет треки только из выбранного плейлиста. Другие плейлисты не трогаются.</p>
                 <p><strong>Добавление:</strong> новые треки попадают в текущий выбранный плейлист.</p>
             </div>

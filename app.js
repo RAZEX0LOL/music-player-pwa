@@ -45,6 +45,7 @@ const I18N = {
         tracks: 'треков',
         newPlaylist: 'Новый плейлист',
         enterPlaylistName: 'Введите название плейлиста',
+        playlistNameLabel: 'Название',
         playlistCreated: 'Плейлист создан',
         playlistRenamed: 'Плейлист переименован',
         playlistDeleted: 'Плейлист удалён',
@@ -61,11 +62,30 @@ const I18N = {
         importMetadataOnly: 'Этот файл содержит только список треков без аудиоданных',
         importInvalidFile: 'Некорректный файл плейлиста',
         tracksImported: 'Импортировано треков',
+        storageUnknown: 'Недоступно',
+        storageProtected: 'Защищено',
+        storageNotProtected: 'Может быть очищено',
+        storageUpdated: 'Сведения о хранилище обновлены',
+        backupLargeWarning: 'Бэкап может быть большим. Продолжить?',
         lyricsOn: 'Текст песни открыт',
         lyricsOff: 'Текст песни закрыт',
         noLyrics: 'Текст песни не найден',
         themeLight: 'Светлая тема',
-        themeDark: 'Тёмная тема'
+        themeDark: 'Тёмная тема',
+        cancel: 'Отмена',
+        ok: 'ОК',
+        confirm: 'Подтвердить',
+        clearPlaylistTitle: 'Очистить плейлист',
+        backupLargeTitle: 'Большой бэкап',
+        filePickerFallback: 'Используйте перетаскивание файлов (drag & drop) для добавления треков офлайн',
+        sleepTimerTitle: 'Таймер сна',
+        sleepTimerPrompt: 'Через сколько минут остановить воспроизведение?',
+        invalidTime: 'Некорректное время',
+        sleepTimerEnded: 'Таймер сна завершён',
+        createPlaylistTitle: 'Новый плейлист',
+        renamePlaylistTitle: 'Переименовать плейлист',
+        deletePlaylistTitle: 'Удалить плейлист',
+        cannotRenameDefault: 'Нельзя переименовать основной плейлист'
     },
     en: {
         noTracks: 'No tracks yet',
@@ -107,6 +127,7 @@ const I18N = {
         tracks: 'tracks',
         newPlaylist: 'New Playlist',
         enterPlaylistName: 'Enter playlist name',
+        playlistNameLabel: 'Name',
         playlistCreated: 'Playlist created',
         playlistRenamed: 'Playlist renamed',
         playlistDeleted: 'Playlist deleted',
@@ -123,11 +144,30 @@ const I18N = {
         importMetadataOnly: 'This file contains a track list without audio data',
         importInvalidFile: 'Invalid playlist file',
         tracksImported: 'Tracks imported',
+        storageUnknown: 'Unavailable',
+        storageProtected: 'Protected',
+        storageNotProtected: 'May be cleared',
+        storageUpdated: 'Storage information updated',
+        backupLargeWarning: 'The backup may be large. Continue?',
         lyricsOn: 'Lyrics opened',
         lyricsOff: 'Lyrics closed',
         noLyrics: 'No lyrics found',
         themeLight: 'Light theme',
-        themeDark: 'Dark theme'
+        themeDark: 'Dark theme',
+        cancel: 'Cancel',
+        ok: 'OK',
+        confirm: 'Confirm',
+        clearPlaylistTitle: 'Clear playlist',
+        backupLargeTitle: 'Large backup',
+        filePickerFallback: 'Use drag and drop to add tracks while offline',
+        sleepTimerTitle: 'Sleep timer',
+        sleepTimerPrompt: 'Stop playback after how many minutes?',
+        invalidTime: 'Invalid time',
+        sleepTimerEnded: 'Sleep timer ended',
+        createPlaylistTitle: 'New playlist',
+        renamePlaylistTitle: 'Rename playlist',
+        deletePlaylistTitle: 'Delete playlist',
+        cannotRenameDefault: 'Cannot rename default playlist'
     }
 };
 
@@ -143,7 +183,11 @@ class ErrorHandler {
     static showToast(message, type = 'info') {
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
-        toast.textContent = message;
+        if (typeof message === 'string') {
+            toast.textContent = message;
+        } else {
+            toast.appendChild(message);
+        }
         document.body.appendChild(toast);
 
         // Trigger animation
@@ -154,6 +198,24 @@ class ErrorHandler {
             toast.classList.remove('show');
             setTimeout(() => toast.remove(), 300);
         }, 3000);
+    }
+
+    static action(message, actionText, onAction, type = 'info') {
+        const content = document.createElement('div');
+        content.className = 'toast-action-content';
+
+        const text = document.createElement('span');
+        text.textContent = message;
+        content.appendChild(text);
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = actionText;
+        button.className = 'toast-action-btn';
+        button.addEventListener('click', onAction);
+        content.appendChild(button);
+
+        this.showToast(content, type);
     }
 }
 
@@ -599,6 +661,7 @@ class MusicPlayer {
         this.isCasting = false;
         this.castBlobUrl = null; // Track Cast blob URL for cleanup
         this.castConfigured = false;
+        this.lastStorageEstimate = null;
 
         this.initElements();
         this.initEventListeners();
@@ -660,6 +723,35 @@ class MusicPlayer {
         this.closeLyricsBtn = document.getElementById('closeLyricsBtn');
         this.castBtn = document.getElementById('castBtn');
         this.tonearm = document.getElementById('tonearm');
+        this.refreshStorageBtn = document.getElementById('refreshStorageBtn');
+        this.backupExportBtn = document.getElementById('backupExportBtn');
+        this.backupImportBtn = document.getElementById('backupImportBtn');
+        this.storageMeterFill = document.getElementById('storageMeterFill');
+        this.storageUsed = document.getElementById('storageUsed');
+        this.storageQuota = document.getElementById('storageQuota');
+        this.storagePersisted = document.getElementById('storagePersisted');
+        this.storageNote = document.getElementById('storageNote');
+
+        // Mobile mini player
+        this.miniPlayer = document.getElementById('miniPlayer');
+        this.miniPlayPauseBtn = document.getElementById('miniPlayPauseBtn');
+        this.miniPrevBtn = document.getElementById('miniPrevBtn');
+        this.miniNextBtn = document.getElementById('miniNextBtn');
+        this.miniPlayerInfo = document.getElementById('miniPlayerInfo');
+        this.miniTrackTitle = document.getElementById('miniTrackTitle');
+        this.miniTrackArtist = document.getElementById('miniTrackArtist');
+        this.miniProgressFill = document.getElementById('miniProgressFill');
+
+        // Reusable app dialog
+        this.appDialog = document.getElementById('appDialog');
+        this.appDialogContent = document.querySelector('#appDialog .app-dialog-content');
+        this.appDialogTitle = document.getElementById('appDialogTitle');
+        this.appDialogMessage = document.getElementById('appDialogMessage');
+        this.appDialogInputLabel = document.getElementById('appDialogInputLabel');
+        this.appDialogInput = document.getElementById('appDialogInput');
+        this.appDialogClose = document.getElementById('appDialogClose');
+        this.appDialogCancel = document.getElementById('appDialogCancel');
+        this.appDialogConfirm = document.getElementById('appDialogConfirm');
     }
 
     initEventListeners() {
@@ -671,6 +763,21 @@ class MusicPlayer {
         this.addTracksBtn.addEventListener('click', () => this.handleAddTracksClick());
         this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
         this.clearAllBtn.addEventListener('click', () => this.clearAllTracks());
+
+        if (this.miniPlayPauseBtn) {
+            this.miniPlayPauseBtn.addEventListener('click', () => this.togglePlay());
+        }
+        if (this.miniPrevBtn) {
+            this.miniPrevBtn.addEventListener('click', () => this.playPrevious());
+        }
+        if (this.miniNextBtn) {
+            this.miniNextBtn.addEventListener('click', () => this.playNext());
+        }
+        if (this.miniPlayerInfo) {
+            this.miniPlayerInfo.addEventListener('click', () => {
+                document.querySelector('.now-playing')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        }
 
         this.audio.addEventListener('timeupdate', () => this.updateProgress());
         this.audio.addEventListener('loadedmetadata', () => this.updateDuration());
@@ -687,6 +794,7 @@ class MusicPlayer {
         // Media Session playback state updates for lock screen
         this.audio.addEventListener('play', () => {
             this.isPlaying = true;
+            this.vinylDisc.classList.add('spinning');
             this.updatePlayButton();
             if ('mediaSession' in navigator) {
                 navigator.mediaSession.playbackState = 'playing';
@@ -699,6 +807,7 @@ class MusicPlayer {
 
         this.audio.addEventListener('pause', () => {
             this.isPlaying = false;
+            this.vinylDisc.classList.remove('spinning');
             this.updatePlayButton();
             if ('mediaSession' in navigator) {
                 navigator.mediaSession.playbackState = 'paused';
@@ -748,6 +857,15 @@ class MusicPlayer {
         }
         if (this.importFileInput) {
             this.importFileInput.addEventListener('change', (e) => this.importPlaylist(e));
+        }
+        if (this.refreshStorageBtn) {
+            this.refreshStorageBtn.addEventListener('click', () => this.refreshStorageInfo(true));
+        }
+        if (this.backupExportBtn) {
+            this.backupExportBtn.addEventListener('click', () => this.exportPlaylist());
+        }
+        if (this.backupImportBtn) {
+            this.backupImportBtn.addEventListener('click', () => this.importFileInput.click());
         }
         if (this.sleepTimerBtn) {
             this.sleepTimerBtn.addEventListener('click', () => this.showSleepTimerDialog());
@@ -815,6 +933,7 @@ class MusicPlayer {
             this.registerServiceWorker();
             this.initTheme();
             this.updatePlayButton();
+            this.refreshStorageInfo(false);
             // Don't setup visualizer until needed - prevents AudioContext suspension on lock screen
         } catch (error) {
             console.error('Initialization error:', error);
@@ -833,11 +952,11 @@ class MusicPlayer {
                     const newWorker = registration.installing;
                     newWorker.addEventListener('statechange', () => {
                         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            // New version available!
                             const message = I18N[this.lang].updateAvailable;
-                            if (confirm(message)) {
+                            ErrorHandler.action(message, this.lang === 'ru' ? 'Обновить' : 'Update', () => {
+                                newWorker.postMessage({ type: 'SKIP_WAITING' });
                                 window.location.reload();
-                            }
+                            }, 'info');
                         }
                     });
                 });
@@ -861,6 +980,158 @@ class MusicPlayer {
         }
     }
 
+    showAppDialog(options = {}) {
+        const i18n = I18N[this.lang];
+        if (!this.appDialog) {
+            return Promise.resolve(options.input ? null : false);
+        }
+
+        return new Promise((resolve) => {
+            const {
+                title = i18n.confirm,
+                message = '',
+                confirmText = i18n.ok,
+                cancelText = i18n.cancel,
+                input = false,
+                inputType = 'text',
+                inputLabel = '',
+                inputPlaceholder = '',
+                defaultValue = ''
+            } = options;
+
+            let settled = false;
+            const previousActive = document.activeElement;
+
+            this.appDialogTitle.textContent = title;
+            this.appDialogMessage.textContent = message;
+            this.appDialogMessage.hidden = !message;
+            this.appDialogConfirm.textContent = confirmText;
+            this.appDialogCancel.textContent = cancelText;
+
+            this.appDialogInput.hidden = !input;
+            this.appDialogInputLabel.hidden = true;
+            this.appDialogInput.type = inputType;
+            this.appDialogInput.value = defaultValue;
+            this.appDialogInput.placeholder = inputPlaceholder;
+            this.appDialogInputLabel.textContent = '';
+
+            if (input) {
+                this.appDialogInput.setAttribute('aria-label', inputLabel || inputPlaceholder || message);
+            } else {
+                this.appDialogInput.removeAttribute('aria-label');
+                this.appDialogInput.placeholder = '';
+            }
+
+            const syncModalLock = () => {
+                const hasOpenModal = document.querySelector('.modal.show');
+                document.body.classList.toggle('modal-open', Boolean(hasOpenModal));
+            };
+
+            const close = (value) => {
+                if (settled) return;
+                settled = true;
+                this.appDialog.classList.remove('show');
+                this.appDialog.removeEventListener('click', onBackdrop);
+                this.appDialogClose.removeEventListener('click', cancel);
+                this.appDialogCancel.removeEventListener('click', cancel);
+                this.appDialogConfirm.removeEventListener('click', accept);
+                document.removeEventListener('keydown', onKeyDown, true);
+                syncModalLock();
+
+                if (previousActive && typeof previousActive.focus === 'function') {
+                    previousActive.focus();
+                }
+                resolve(value);
+            };
+
+            const accept = () => {
+                if (input) {
+                    close(this.appDialogInput.value.trim());
+                    return;
+                }
+                close(true);
+            };
+
+            const cancel = () => close(input ? null : false);
+
+            const onBackdrop = (event) => {
+                if (event.target === this.appDialog) {
+                    cancel();
+                }
+            };
+
+            const onKeyDown = (event) => {
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    cancel();
+                    return;
+                }
+
+                if (event.key === 'Enter' && (input || event.target === this.appDialogContent)) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    accept();
+                    return;
+                }
+
+                if (event.key === 'Tab') {
+                    const focusable = Array.from(this.appDialog.querySelectorAll('button, input, [tabindex]:not([tabindex="-1"])'))
+                        .filter(el => !el.disabled && !el.hidden && el.offsetParent !== null);
+                    if (focusable.length === 0) return;
+
+                    const first = focusable[0];
+                    const last = focusable[focusable.length - 1];
+                    if (event.shiftKey && document.activeElement === first) {
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        last.focus();
+                    } else if (!event.shiftKey && document.activeElement === last) {
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        first.focus();
+                    }
+                }
+            };
+
+            this.appDialog.addEventListener('click', onBackdrop);
+            this.appDialogClose.addEventListener('click', cancel);
+            this.appDialogCancel.addEventListener('click', cancel);
+            this.appDialogConfirm.addEventListener('click', accept);
+            document.addEventListener('keydown', onKeyDown, true);
+
+            this.appDialog.classList.add('show');
+            document.body.classList.add('modal-open');
+
+            requestAnimationFrame(() => {
+                const target = input ? this.appDialogInput : this.appDialogConfirm;
+                target.focus();
+                if (input) {
+                    this.appDialogInput.select();
+                }
+            });
+        });
+    }
+
+    async confirmDialog(title, message, confirmText = I18N[this.lang].confirm) {
+        const result = await this.showAppDialog({ title, message, confirmText });
+        return result === true;
+    }
+
+    promptDialog(title, message, defaultValue = '', inputPlaceholder = '', inputLabel = '') {
+        const i18n = I18N[this.lang];
+        return this.showAppDialog({
+            title,
+            message,
+            defaultValue,
+            inputLabel,
+            inputPlaceholder,
+            input: true,
+            confirmText: i18n.ok,
+            cancelText: i18n.cancel
+        });
+    }
+
     handleAddTracksClick() {
         // Try to open file picker
         // Note: iOS Safari may block this in offline PWA mode
@@ -868,8 +1139,7 @@ class MusicPlayer {
         try {
             this.fileInput.click();
         } catch (error) {
-            console.error('File picker error:', error);
-            alert('Используйте перетаскивание файлов (drag & drop) для добавления треков офлайн');
+            ErrorHandler.notify(I18N[this.lang].filePickerFallback, error, 'warning');
         }
     }
 
@@ -1053,7 +1323,12 @@ class MusicPlayer {
 
     async clearAllTracks() {
         const i18n = I18N[this.lang];
-        if (!confirm(i18n.confirmClearAll)) return;
+        const confirmed = await this.confirmDialog(
+            i18n.clearPlaylistTitle,
+            i18n.confirmClearAll,
+            i18n.confirm
+        );
+        if (!confirmed) return;
 
         try {
             // If the playing track lives in this playlist, stop it cleanly.
@@ -1111,6 +1386,7 @@ class MusicPlayer {
             navigator.mediaSession.metadata = null;
             navigator.mediaSession.playbackState = 'none';
         }
+        this.updateMiniPlayer();
     }
 
     async playTrackAtIndex(index) {
@@ -1254,12 +1530,49 @@ class MusicPlayer {
 
     updatePlayButton() {
         this.playPauseBtn.innerHTML = svgIcon(this.isPlaying ? 'pause' : 'play');
+        this.updateMiniPlayer();
     }
 
     updateNowPlaying(trackName) {
+        const i18n = I18N[this.lang];
         const name = trackName.replace(/\.[^/.]+$/, '');
         this.currentTrackTitle.textContent = name;
-        this.currentTrackArtist.textContent = 'Сейчас играет';
+        this.currentTrackArtist.textContent = i18n.nowPlaying;
+        this.updateMiniPlayer();
+    }
+
+    updateMiniPlayer() {
+        if (!this.miniPlayer) return;
+
+        const hasCurrentTrack = this.currentTrackId != null;
+        this.miniPlayer.hidden = !hasCurrentTrack;
+        document.body.classList.toggle('has-mini-player', hasCurrentTrack);
+
+        if (!hasCurrentTrack) {
+            this.updateMiniPlayerProgress(0);
+            return;
+        }
+
+        if (this.miniTrackTitle) {
+            this.miniTrackTitle.textContent = this.currentTrackTitle.textContent;
+        }
+        if (this.miniTrackArtist) {
+            this.miniTrackArtist.textContent = this.currentTrackArtist.textContent;
+        }
+        if (this.miniPlayPauseBtn) {
+            this.miniPlayPauseBtn.innerHTML = svgIcon(this.isPlaying ? 'pause' : 'play');
+        }
+        this.updateMiniPlayerProgress();
+    }
+
+    updateMiniPlayerProgress(forcedProgress = null) {
+        if (!this.miniProgressFill) return;
+
+        let progress = forcedProgress;
+        if (progress === null) {
+            progress = this.audio.duration ? (this.audio.currentTime / this.audio.duration) * 100 : 0;
+        }
+        this.miniProgressFill.style.width = `${Math.max(0, Math.min(100, progress))}%`;
     }
 
     updateProgress() {
@@ -1267,6 +1580,7 @@ class MusicPlayer {
             const progress = (this.audio.currentTime / this.audio.duration) * 100;
             this.progressBar.value = progress;
             this.currentTimeEl.textContent = this.formatTime(this.audio.currentTime);
+            this.updateMiniPlayerProgress(progress);
             this.syncLyrics(); // v3.0: Sync lyrics with current time
         }
     }
@@ -1274,6 +1588,7 @@ class MusicPlayer {
     updateDuration() {
         if (this.audio.duration) {
             this.durationEl.textContent = this.formatTime(this.audio.duration);
+            this.updateMiniPlayerProgress();
             this.updateMediaSessionPositionState();
         }
     }
@@ -1294,21 +1609,65 @@ class MusicPlayer {
     }
 
     async showStorageInfo() {
-        // Show storage usage info to user
+        await this.refreshStorageInfo(false);
+    }
+
+    async refreshStorageInfo(showToast = false) {
+        const i18n = I18N[this.lang];
+        let estimate = null;
+        let persisted = null;
+
         if (navigator.storage && navigator.storage.estimate) {
             try {
-                const estimate = await navigator.storage.estimate();
-                const usedMB = (estimate.usage / (1024 * 1024)).toFixed(1);
-                const quotaMB = (estimate.quota / (1024 * 1024)).toFixed(0);
-                const percentUsed = ((estimate.usage / estimate.quota) * 100).toFixed(1);
-
-                console.log(`📊 Storage: ${usedMB} MB / ${quotaMB} MB (${percentUsed}%)`);
-
-                // Optionally show in status (uncomment if you want to display to user)
-                // this.statusText.textContent = `Хранилище: ${usedMB} МБ / ${quotaMB} МБ`;
+                estimate = await navigator.storage.estimate();
+                this.lastStorageEstimate = estimate;
             } catch (error) {
-                console.log('Storage info error:', error);
+                console.log('Storage estimate error:', error);
             }
+        }
+
+        if (navigator.storage && navigator.storage.persisted) {
+            try {
+                persisted = await navigator.storage.persisted();
+            } catch (error) {
+                console.log('Persistent storage status error:', error);
+            }
+        }
+
+        this.renderStorageInfo(estimate, persisted);
+
+        if (showToast) {
+            ErrorHandler.notify(i18n.storageUpdated, null, 'info');
+        }
+    }
+
+    renderStorageInfo(estimate, persisted) {
+        const i18n = I18N[this.lang];
+        const usage = estimate?.usage || 0;
+        const quota = estimate?.quota || 0;
+        const percent = quota > 0 ? Math.min(100, (usage / quota) * 100) : 0;
+
+        if (this.storageMeterFill) {
+            this.storageMeterFill.style.width = `${percent.toFixed(1)}%`;
+        }
+        if (this.storageUsed) {
+            this.storageUsed.textContent = quota > 0 ? this.formatFileSize(usage) : i18n.storageUnknown;
+        }
+        if (this.storageQuota) {
+            this.storageQuota.textContent = quota > 0 ? this.formatFileSize(quota) : i18n.storageUnknown;
+        }
+        if (this.storagePersisted) {
+            this.storagePersisted.textContent = persisted === true
+                ? i18n.storageProtected
+                : persisted === false
+                    ? i18n.storageNotProtected
+                    : i18n.storageUnknown;
+        }
+        if (this.storageNote) {
+            const usedText = quota > 0 ? `${percent.toFixed(1)}%` : '—';
+            this.storageNote.textContent = this.lang === 'ru'
+                ? `Музыка хранится только в этом браузере. Сейчас занято ${usedText}. Делайте бэкап перед очисткой данных сайта или сменой устройства.`
+                : `Music is stored only in this browser. Current usage is ${usedText}. Create a backup before clearing site data or changing devices.`;
         }
     }
 
@@ -1510,6 +1869,15 @@ class MusicPlayer {
     async exportPlaylist() {
         const i18n = I18N[this.lang];
         try {
+            if (this.lastStorageEstimate && this.lastStorageEstimate.usage > 200 * 1024 * 1024) {
+                const confirmed = await this.confirmDialog(
+                    i18n.backupLargeTitle,
+                    i18n.backupLargeWarning,
+                    i18n.confirm
+                );
+                if (!confirmed) return;
+            }
+
             const currentPlaylistMeta = this.playlists.find(p => p.id === this.currentPlaylist);
             const tracks = [];
 
@@ -1551,7 +1919,7 @@ class MusicPlayer {
 
             const a = document.createElement('a');
             a.href = url;
-            a.download = `music-playlist-${Date.now()}.json`;
+            a.download = `music-player-backup-${Date.now()}.json`;
             a.click();
             a.remove();
 
@@ -1652,7 +2020,7 @@ class MusicPlayer {
     }
 
     // Sleep timer functionality (toggle: opens dialog, or cancels if already armed)
-    showSleepTimerDialog() {
+    async showSleepTimerDialog() {
         const i18n = I18N[this.lang];
 
         if (this.sleepTimer) {
@@ -1660,12 +2028,17 @@ class MusicPlayer {
             return;
         }
 
-        const minutes = prompt(`${i18n.sleepTimerSet}?\n\n${i18n.minutes}:`, '30');
+        const minutes = await this.promptDialog(
+            i18n.sleepTimerTitle,
+            i18n.sleepTimerPrompt,
+            '30',
+            i18n.minutes
+        );
         if (minutes === null) return;
 
         const min = parseInt(minutes);
         if (isNaN(min) || min <= 0) {
-            ErrorHandler.notify('Invalid time', null, 'warning');
+            ErrorHandler.notify(i18n.invalidTime, null, 'warning');
             return;
         }
 
@@ -1674,7 +2047,7 @@ class MusicPlayer {
             this.vinylDisc.classList.remove('spinning');
             this.sleepTimer = null;
             this.updateSleepTimerUI();
-            ErrorHandler.notify('Sleep timer ended', null, 'info');
+            ErrorHandler.notify(i18n.sleepTimerEnded, null, 'info');
         }, min * 60 * 1000);
 
         this.updateSleepTimerUI(min);
@@ -1844,6 +2217,7 @@ class MusicPlayer {
         }
 
         this.showAlbumArtOrVinyl(track);
+        this.updateMiniPlayer();
     }
 
     // Show album art or vinyl disc
@@ -1884,7 +2258,13 @@ class MusicPlayer {
 
     async createNewPlaylist() {
         const i18n = I18N[this.lang];
-        const name = prompt(i18n.enterPlaylistName, i18n.newPlaylist);
+        const name = await this.promptDialog(
+            i18n.createPlaylistTitle,
+            '',
+            '',
+            i18n.enterPlaylistName,
+            i18n.playlistNameLabel
+        );
         if (!name || name.trim() === '') return;
 
         try {
@@ -1903,7 +2283,7 @@ class MusicPlayer {
         const i18n = I18N[this.lang];
 
         if (this.currentPlaylist === 'default') {
-            ErrorHandler.notify('Cannot rename default playlist', null, 'warning');
+            ErrorHandler.notify(i18n.cannotRenameDefault, null, 'warning');
             return;
         }
 
@@ -1911,7 +2291,13 @@ class MusicPlayer {
             const playlist = await this.db.getPlaylist(this.currentPlaylist);
             if (!playlist) return;
 
-            const newName = prompt(i18n.enterPlaylistName, playlist.name);
+            const newName = await this.promptDialog(
+                i18n.renamePlaylistTitle,
+                '',
+                playlist.name,
+                i18n.enterPlaylistName,
+                i18n.playlistNameLabel
+            );
             if (!newName || newName.trim() === '') return;
 
             await this.db.renamePlaylist(this.currentPlaylist, newName.trim());
@@ -1933,7 +2319,12 @@ class MusicPlayer {
         const playlist = await this.db.getPlaylist(this.currentPlaylist);
         if (!playlist) return;
 
-        if (!confirm(i18n.confirmDeletePlaylist + ' "' + playlist.name + '"?')) return;
+        const confirmed = await this.confirmDialog(
+            i18n.deletePlaylistTitle,
+            `${i18n.confirmDeletePlaylist} "${playlist.name}"?`,
+            i18n.confirm
+        );
+        if (!confirmed) return;
 
         try {
             await this.db.deletePlaylist(this.currentPlaylist);

@@ -1,8 +1,10 @@
 {
   "name": "Офлайн Музыкальный Плеер",
   "short_name": "Музыка",
+  "id": "./",
   "description": "Слушайте музыку офлайн без интернета",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#1a1a2e",
   "theme_color": "#16213e",
@@ -14,6 +16,33 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Открыть музыку",
+      "short_name": "Музыка",
+      "description": "Открыть локальную музыкальную библиотеку",
+      "url": "./",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
