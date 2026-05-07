@@ -1,4 +1,4 @@
-const CACHE_NAME = 'music-player-v18-pages-pwa';
+const CACHE_NAME = 'music-player-v19-icon-help';
 const APP_SHELL = [
     './',
     './index.html',

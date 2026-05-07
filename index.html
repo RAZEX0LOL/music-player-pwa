@@ -13,6 +13,8 @@
     <link rel="apple-touch-icon" href="./icons/icon-180.png">
 
     <title>Офлайн Музыкальный Плеер</title>
+    <link rel="icon" href="./icon.svg" type="image/svg+xml">
+    <link rel="icon" href="./icons/icon-192.png" sizes="192x192" type="image/png">
     <link rel="manifest" href="./manifest.json">
     <link rel="stylesheet" href="./styles.css">
 
@@ -340,13 +342,15 @@
             <div class="help-section">
                 <h3>Как добавить музыку</h3>
                 <p><strong>Способ 1:</strong> Нажмите «Добавить треки» → выберите файлы.</p>
-                <p><strong>Способ 2:</strong> Перетащите MP3/MP4 файлы в окно.</p>
+                <p><strong>Способ 2:</strong> Перетащите аудио или видеофайлы в окно. На телефонах этот способ зависит от браузера.</p>
             </div>
 
             <div class="help-section">
                 <h3>Управление</h3>
                 <p>В строке плеера: ⏮ предыдущий · ▶ играть/пауза · ⏭ следующий · 🔀 перемешать · 🔁 повтор.</p>
                 <p>Слайдеры громкости и скорости — под кнопками плеера.</p>
+                <p>На телефоне во время воспроизведения появляется нижний mini-player с быстрыми кнопками.</p>
+                <p>Экран блокировки, уведомления, наушники и медиа-клавиши работают там, где браузер поддерживает Media Session.</p>
             </div>
 
             <div class="help-section">
@@ -355,26 +359,29 @@
                 <p><strong>Переименовать:</strong> кнопка с карандашом (нельзя для Default).</p>
                 <p><strong>Удалить:</strong> кнопка с корзиной — удаляет плейлист и все его треки (нельзя для Default).</p>
                 <p><strong>Переключиться:</strong> выпадающий список слева.</p>
-                <p><strong>Экспорт/импорт:</strong> кнопки со стрелками рядом — сохраняют и восстанавливают плейлист вместе с аудиоданными.</p>
+                <p><strong>Экспорт/импорт:</strong> кнопки со стрелками рядом — сохраняют и восстанавливают плейлист вместе с аудиоданными. Файл бэкапа может быть большим.</p>
                 <p><strong>Очистка:</strong> «Очистить плейлист» удаляет треки только из выбранного плейлиста. Другие плейлисты не трогаются.</p>
                 <p><strong>Добавление:</strong> новые треки попадают в текущий выбранный плейлист.</p>
             </div>
 
             <div class="help-section">
                 <h3>Хранилище</h3>
-                <p>Телефон: до 10 ГБ. Компьютер: до 500 ГБ.</p>
                 <p>Музыка хранится локально в IndexedDB — данные на сервер не уходят.</p>
+                <p>Квота зависит от браузера, устройства, свободного места и разрешения на persistent storage.</p>
+                <p>Откройте «Настройки» → «Хранилище и бэкап», чтобы посмотреть занятое место, доступную квоту и сделать резервную копию.</p>
             </div>
 
             <div class="help-section">
                 <h3>Офлайн режим</h3>
-                <p>1. Один раз откройте приложение онлайн (для регистрации Service Worker).</p>
-                <p>2. Дальше слушайте без интернета.</p>
+                <p>1. Откройте приложение по HTTPS/GitHub Pages или через localhost, чтобы зарегистрировать Service Worker.</p>
+                <p>2. После первой загрузки приложение и ID3 parser кешируются локально.</p>
+                <p>3. Дальше можно слушать без интернета. При открытии через file:// офлайн-кеш браузером не регистрируется.</p>
             </div>
 
             <div class="help-section">
                 <h3>Форматы</h3>
-                <p>MP3, WAV, OGG, FLAC, M4A, AAC. MP4/M4V — только звук.</p>
+                <p>MP3, WAV, OGG, FLAC, M4A, AAC, WEBM, WMA, MPEG. MP4/M4V — только звук.</p>
+                <p>Фактическое воспроизведение зависит от поддержки формата в вашем браузере.</p>
             </div>
 
             <div class="help-section">
@@ -390,7 +397,8 @@
 
             <div class="help-section">
                 <h3>Настройки приложения</h3>
-                <p>Откройте шестерёнку в шапке: цветовые акценты, таймер сна, визуализатор, текст песни, Chromecast.</p>
+                <p>Откройте шестерёнку в шапке: цветовые акценты, таймер сна, визуализатор, текст песни, хранилище и бэкап.</p>
+                <p>Текст песни показывается только если он есть в метаданных трека. Chromecast появляется только в поддерживаемых браузерах и при доступной сети.</p>
             </div>
 
             <div class="help-section">
@@ -401,9 +409,9 @@
             </div>
 
             <div class="help-section">
-                <h3>Полная инструкция</h3>
-                <p><a href="https://github.com/RAZEX0LOL/music-player-pwa/blob/master/INSTRUKCIYA.md" target="_blank">Русская инструкция (GitHub)</a></p>
-                <p><a href="https://github.com/RAZEX0LOL/music-player-pwa/blob/master/USER-GUIDE.md" target="_blank">English User Guide (GitHub)</a></p>
+                <h3>Документация</h3>
+                <p><a href="https://github.com/RAZEX0LOL/music-player-pwa/blob/master/INSTRUKCIYA.md" target="_blank">Русская инструкция на GitHub</a></p>
+                <p><a href="https://github.com/RAZEX0LOL/music-player-pwa/blob/master/USER-GUIDE.md" target="_blank">English user guide on GitHub</a></p>
             </div>
 
             <div class="help-section help-section--center">
