@@ -1,0 +1,13 @@
+{
+  "name": "razex-offline-music-player",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check app.js && node --check player-utils.js && node --check sw.js && node scripts/validate-pwa.mjs && node --test",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

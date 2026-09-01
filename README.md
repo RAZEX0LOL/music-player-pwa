@@ -1,206 +1,112 @@
-# Офлайн Музыкальный Плеер PWA
+# Offline Music Player PWA
 
-Прогрессивное веб-приложение, которое позволяет слушать музыку полностью офлайн, без интернета!
+[![CI](https://github.com/RAZEX0LOL/music-player-pwa/actions/workflows/ci.yml/badge.svg)](https://github.com/RAZEX0LOL/music-player-pwa/actions/workflows/ci.yml)
+[![Live demo](https://img.shields.io/badge/live-GitHub%20Pages-2ea44f)](https://razex0lol.github.io/music-player-pwa/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## 📖 Инструкции для пользователей
+A privacy-first progressive web app that turns local audio files into an installable offline music library. Tracks stay inside the browser: there is no account, backend, analytics, or upload step.
 
-**Как использовать приложение:**
-- 🇷🇺 **[Русская инструкция](INSTRUKCIYA.md)** - Подробное руководство на русском языке
-- 🇬🇧 **[English User Guide](USER-GUIDE.md)** - Detailed guide in English
+**[Open the live app](https://razex0lol.github.io/music-player-pwa/)** · [English user guide](USER-GUIDE.md) · [Руководство на русском](INSTRUKCIYA.md)
 
-**Быстрый старт:** https://razex0lol.github.io/music-player-pwa/
+![Offline Music Player dashboard](docs/images/player-dashboard.jpg)
 
-## Возможности
+## Why this project
 
-- **100% Офлайн** - Работает без интернета после первой настройки
-- **Установка как приложение** - Можно установить на телефон/компьютер
-- **Красивый интерфейс** - Современный, анимированный дизайн с винилом
-- **Полное управление** - Воспроизведение, пауза, следующая, предыдущая, перемотка, громкость
-- **Управление с экрана блокировки** - Управляйте музыкой с заблокированного экрана телефона
-- **Управление плейлистом** - Добавляйте, удаляйте и управляйте песнями
-- **Не требует сервера** - Вся музыка хранится локально в браузере
-- **Огромное хранилище** - До 500 ГБ на компьютере, до 10 ГБ на телефоне!
-- **Поддержка видео** - MP4 музыкальные видео (воспроизводит только звук)
-- **Перетаскивание файлов** - Drag & drop поддержка на компьютере и планшетах
+Streaming services are not always available, private, or reliable offline. This app provides a device-local player with the convenience of an installed application while keeping the library under the user's control.
 
----
+## Features
 
-## Для разработчиков
+- Offline app shell powered by a Service Worker.
+- Local audio storage in IndexedDB with no server upload.
+- Multiple playlists with import, export, search, and drag-and-drop.
+- Playback queue with previous/next, shuffle, repeat-one, and repeat-all modes.
+- Media Session integration for lock screens, headsets, car controls, and media keys.
+- ID3 metadata, album artwork, embedded lyrics, and an audio visualizer.
+- Sleep timer, playback speed, volume, light/dark themes, and accent colors.
+- Storage quota visibility and persistent-storage requests where supported.
+- Responsive desktop and mobile layouts with an installable PWA manifest.
+- Russian and English interface text selected from the browser language.
 
-### Как использовать
+## Architecture
 
-### 1. Настройка (требуется интернет один раз)
+```text
+Browser UI
+  ├─ MusicPlayer — playback state, playlists, search and Media Session
+  ├─ MusicDB — IndexedDB persistence for tracks and binary audio data
+  ├─ player-utils.js — tested playback and validation rules
+  ├─ jsmediatags — local ID3 metadata extraction
+  └─ Service Worker — cached app shell and offline navigation fallback
+```
 
-Для запуска PWA нужен локальный веб-сервер. Есть три простых способа:
+The application deliberately has no backend. Static files are served by GitHub Pages, while a user's music and preferences remain in that browser profile.
 
-**Вариант А: Использование Python (если установлен)**
+## Run locally
+
+The app must be served over HTTP rather than opened through `file://` so the Service Worker and module imports can run.
 
 ```bash
-cd music-player-pwa
 python3 -m http.server 8000
 ```
 
-**Вариант Б: Использование Node.js (если установлен)**
+Open `http://localhost:8000`. No dependency installation or build step is required.
+
+## Quality checks
+
+Node.js 22 or newer is used only for repository checks; it is not required by the browser application.
 
 ```bash
-cd music-player-pwa
-npx serve
+npm test
+npm run check
 ```
 
-**Вариант В: Использование PHP (если установлен)**
+The check command runs:
 
-```bash
-cd music-player-pwa
-php -S localhost:8000
+- syntax validation for the application, utilities, and Service Worker;
+- PWA manifest and app-shell integrity checks;
+- dependency-free unit tests for playback navigation, repeat modes, media-file validation, and formatting.
+
+GitHub Actions executes the same command for every pull request and every push to `master`.
+
+## Offline behavior
+
+On the first online visit, the Service Worker caches the application shell. Navigations use a network-first strategy with an offline fallback, while same-origin static assets use cache-first delivery. Imported music is stored separately in IndexedDB and is never added to the HTTP cache.
+
+Browser storage can still be cleared by the user, the operating system, or storage pressure. Use the playlist backup function before clearing site data or changing devices.
+
+## Privacy and security
+
+- No account, cookies, analytics, advertising, or remote media upload.
+- Audio blobs, metadata, playlists, and settings remain on the device.
+- Imported files are validated by size and media type/extension before storage.
+- Third-party metadata parsing is vendored so it remains available offline.
+
+Security reports are handled according to [SECURITY.md](SECURITY.md).
+
+## Project structure
+
+```text
+.
+├── .github/workflows/ci.yml
+├── docs/images/player-dashboard.jpg
+├── icons/
+├── scripts/validate-pwa.mjs
+├── test/player-utils.test.js
+├── vendor/jsmediatags.min.js
+├── app.js
+├── index.html
+├── manifest.json
+├── player-utils.js
+├── styles.css
+└── sw.js
 ```
 
-### 2. Откройте в браузере
+## Limitations
 
-Откройте браузер и перейдите по адресу:
+- Codec support depends on the browser and operating system.
+- Storage quotas vary by browser, device, and available disk space.
+- iOS and desktop browsers expose different PWA and Media Session capabilities.
+- Backups containing audio data can become large.
 
-```
-http://localhost:8000
-```
+## License
 
-### 3. Установите как приложение (Необязательно, но рекомендуется)
-
-**На компьютере (Chrome/Edge):**
-
-- Нажмите на иконку установки в адресной строке (выглядит как компьютер со стрелкой)
-- Или зайдите в меню → "Установить Офлайн Музыкальный Плеер"
-
-**На телефоне (Chrome/Safari):**
-
-- Chrome: Нажмите меню → "Добавить на главный экран"
-- Safari: Нажмите кнопку поделиться → "На экран Домой"
-
-### 4. Добавьте свою музыку
-
-1. Нажмите кнопку "📁 Добавить песни"
-2. Выберите MP3, WAV, OGG или другие аудиофайлы с вашего устройства
-3. Ваши песни теперь сохранены локально в браузере!
-
-### 5. Слушайте офлайн
-
-- Отключите интернет/WiFi
-- Откройте приложение (установленное или в браузере)
-- Ваша музыка всё ещё там и отлично играет!
-- Все песни хранятся в IndexedDB в вашем браузере
-
-## Управление
-
-- **Воспроизведение/Пауза** - Нажмите центральную кнопку или пробел
-- **Следующая/Предыдущая** - Используйте кнопки со стрелками
-- **Перемотка** - Перетащите полосу прогресса
-- **Громкость** - Настройте ползунок громкости
-- **Выбор песни** - Нажмите на любую песню в плейлисте
-- **Удалить песню** - Нажмите на иконку корзины рядом с песней
-- **Очистить всё** - Удалить все песни разом
-
-## Управление с экрана блокировки
-
-При воспроизведении на телефоне вы можете управлять музыкой из:
-
-- Экрана блокировки
-- Панели уведомлений
-- Bluetooth наушников
-- Автомобильной аудиосистемы
-
-## Технические детали
-
-### Хранилище
-
-- Песни хранятся в **IndexedDB** (база данных браузера)
-- Файлы приложения кешируются **Service Worker**
-- Типичное хранилище: 50МБ - 2ГБ в зависимости от браузера и устройства
-- Нет загрузки на сервер - всё остаётся на вашем устройстве
-
-### Поддерживаемые аудиоформаты
-
-- MP3
-- WAV
-- OGG
-- M4A
-- FLAC (зависит от браузера)
-- И другие (зависит от вашего браузера)
-
-### Поддержка браузеров
-
-- Chrome/Edge (Компьютер и Телефон) ✅
-- Firefox (Компьютер и Телефон) ✅
-- Safari (Компьютер и Телефон) ✅
-- Opera ✅
-
-## Конфиденциальность
-
-- **100% Приватно** - Никакие данные не отправляются на сервер
-- **Без отслеживания** - Нет аналитики, нет слежения
-- **Только локально** - Все файлы остаются на вашем устройстве
-- **Без аккаунта** - Нет входа, нет регистрации
-
-## Советы
-
-1. **Место для хранения**: Проверьте настройки хранилища браузера, если не можете добавить больше песен
-2. **Резервное копирование**: Регулярно экспортируйте ваши музыкальные файлы (данные браузера могут быть очищены)
-3. **Батарея**: Воспроизведение с экрана блокировки может использовать больше батареи на телефоне
-4. **Формат**: MP3 файлы работают лучше всего для совместимости
-5. **Организация**: Называйте файлы понятно (отображается как название песни)
-
-## Решение проблем
-
-**Песни не играют?**
-
-- Проверьте, поддерживается ли аудиоформат вашим браузером
-- Попробуйте добавить песню заново
-
-**Приложение не работает офлайн?**
-
-- Убедитесь, что вы открывали его хотя бы один раз онлайн
-- Проверьте, зарегистрирован ли Service Worker (F12 → Application → Service Workers)
-
-**Хранилище заполнено?**
-
-- Удалите старые песни, которые вам не нужны
-- Проверьте квоту хранилища браузера в настройках
-
-**Не могу установить приложение?**
-
-- Убедитесь, что используете HTTPS (или localhost для тестирования)
-- Попробуйте другой браузер
-
-## Структура файлов
-
-```
-music-player-pwa/
-├── index.html          # Главная HTML страница
-├── styles.css          # Стили
-├── app.js             # Логика плеера и IndexedDB
-├── sw.js              # Service Worker (офлайн кеш)
-├── manifest.json      # Манифест PWA
-└── README.md       # Этот файл
-```
-
-## Как это работает
-
-1. **Service Worker** кеширует файлы приложения (HTML, CSS, JS)
-2. **IndexedDB** хранит ваши аудиофайлы как бинарные блобы
-3. **Audio API** воспроизводит файлы из локального хранилища
-4. **Media Session API** предоставляет управление с экрана блокировки
-5. Всё работает офлайн после первой загрузки!
-
-## Разработка
-
-Хотите кастомизировать? Код простой и хорошо прокомментирован:
-
-- `app.js` - Основная логика плеера, операции IndexedDB
-- `styles.css` - Все визуальные стили
-- `sw.js` - Стратегия офлайн кеширования
-- `index.html` - Структура и разметка
-
-## Лицензия
-
-Свободно использовать, изменять и распространять! Без ограничений.
-
----
-
-Наслаждайтесь музыкой офлайн! 🎵
+[MIT](LICENSE) © 2026 Rasul Khattaev.

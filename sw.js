@@ -1,9 +1,10 @@
-const CACHE_NAME = 'music-player-v19-icon-help';
+const CACHE_NAME = 'music-player-v20-showcase';
 const APP_SHELL = [
     './',
     './index.html',
     './styles.css',
     './app.js',
+    './player-utils.js',
     './manifest.json',
     './icon.svg',
     './icons/icon-180.png',

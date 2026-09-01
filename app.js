@@ -1,3 +1,11 @@
+import {
+    formatBytes,
+    formatDuration,
+    getNextRepeatMode,
+    getNextTrackIndex,
+    validateMediaFile
+} from './player-utils.js';
+
 // Helper: build an inline SVG that references a sprite symbol via <use>
 function svgIcon(name) {
     return `<svg class="icon" aria-hidden="true"><use href="#icon-${name}"/></svg>`;
@@ -636,8 +644,6 @@ class MusicPlayer {
 
         // File validation constants
         this.MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
-        this.ALLOWED_TYPES = ['audio/', 'video/mp4', 'video/x-m4v'];
-
         // Playlist management
         this.currentPlaylist = 'default';
         this.playlists = [];
@@ -1196,17 +1202,13 @@ class MusicPlayer {
 
     validateFile(file) {
         const i18n = I18N[this.lang];
+        const validation = validateMediaFile(file, this.MAX_FILE_SIZE);
 
-        // Check file size
-        if (file.size > this.MAX_FILE_SIZE) {
+        if (validation.reason === 'too-large') {
             throw new Error(`${i18n.fileTooLarge}: ${this.formatFileSize(file.size)}`);
         }
 
-        // Check file type
-        const isAllowedType = this.ALLOWED_TYPES.some(type => file.type.startsWith(type));
-        const hasValidExtension = file.name.match(/\.(mp3|wav|ogg|m4a|flac|mp4|m4v|aac|wma|webm|mpeg)$/i);
-
-        if (!isAllowedType && !hasValidExtension) {
+        if (!validation.valid) {
             throw new Error(`${i18n.unsupportedFormat}: ${file.type || file.name}`);
         }
 
@@ -1481,37 +1483,17 @@ class MusicPlayer {
     async playNext() {
         if (this.playlist.length === 0) return;
 
-        // Nothing currently selected → start from the beginning.
-        if (this.currentIndex < 0) {
-            await this.playTrackAtIndex(0);
+        const nextIndex = getNextTrackIndex({
+            currentIndex: this.currentIndex,
+            trackCount: this.playlist.length,
+            repeatMode: this.repeatMode,
+            shuffle: this.shuffleMode
+        });
+
+        if (nextIndex === null) {
+            this.audio.pause();
+            this.vinylDisc.classList.remove('spinning');
             return;
-        }
-
-        // Repeat one track
-        if (this.repeatMode === 'one') {
-            await this.playTrackAtIndex(this.currentIndex);
-            return;
-        }
-
-        // Calculate next index
-        let nextIndex;
-        if (this.shuffleMode) {
-            nextIndex = Math.floor(Math.random() * this.playlist.length);
-        } else {
-            nextIndex = this.currentIndex + 1;
-        }
-
-        // Check if we've reached the end
-        if (nextIndex >= this.playlist.length) {
-            if (this.repeatMode === 'all') {
-                // Loop back to start
-                nextIndex = 0;
-            } else {
-                // repeatMode === 'none' - stop playing
-                this.audio.pause();
-                this.vinylDisc.classList.remove('spinning');
-                return;
-            }
         }
 
         this.currentIndex = nextIndex;
@@ -1672,16 +1654,11 @@ class MusicPlayer {
     }
 
     formatTime(seconds) {
-        if (isNaN(seconds)) return '0:00';
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
+        return formatDuration(seconds);
     }
 
     formatFileSize(bytes) {
-        if (bytes < 1024) return bytes + ' B';
-        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        return formatBytes(bytes);
     }
 
     escapeHtml(text) {
@@ -1820,9 +1797,7 @@ class MusicPlayer {
 
     // Repeat functionality
     cycleRepeat() {
-        const modes = ['none', 'all', 'one'];
-        const currentIndex = modes.indexOf(this.repeatMode);
-        this.repeatMode = modes[(currentIndex + 1) % modes.length];
+        this.repeatMode = getNextRepeatMode(this.repeatMode);
 
         const i18n = I18N[this.lang];
         let message = i18n.repeatOff;
